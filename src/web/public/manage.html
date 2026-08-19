@@ -394,7 +394,50 @@
                 </label>
               </div>
 
-              <button type="submit" class="btn btn-success" style="margin-top: 1rem;"><i class="fa-solid fa-floppy-disk"></i> Salvar Proteções</button>
+              <!-- SEÇÃO ANTI-ALT DEFENDER -->
+              <h3 style="font-size: 1.1rem; margin-top: 2rem; margin-bottom: 1rem; color: var(--primary); display: flex; align-items: center; gap: 8px;">
+                <i class="fa-solid fa-user-shield"></i> Proteção Anti-Contas Fake (Alt Shield)
+              </h3>
+
+              <div class="toggle-item">
+                <div class="info">
+                  <h4>🛡️ Ativar Bloqueio de Contas Novas</h4>
+                  <p>Impede que contas do Discord recém-criadas entrem e baguncem o servidor.</p>
+                </div>
+                <label class="switch">
+                  <input type="checkbox" id="sec-anti-alt">
+                  <span class="slider"></span>
+                </label>
+              </div>
+
+              <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 1rem; margin-top: 1rem;">
+                <div class="form-group" style="margin-bottom: 0;">
+                  <label>⏳ Idade Mínima da Conta do Discord</label>
+                  <select id="sec-min-age" class="form-control">
+                    <option value="3">Mínimo 3 Dias de Criação</option>
+                    <option value="7" selected>Mínimo 7 Dias de Criação (Recomendado)</option>
+                    <option value="14">Mínimo 14 Dias de Criação</option>
+                    <option value="30">Mínimo 30 Dias (Segurança Máxima)</option>
+                  </select>
+                </div>
+
+                <div class="form-group" style="margin-bottom: 0;">
+                  <label>🚫 Ação Automática</label>
+                  <select id="sec-action" class="form-control">
+                    <option value="kick" selected>Expulsar do Servidor (Kick)</option>
+                    <option value="ban">Banir Automaticamente (Ban)</option>
+                    <option value="quarantine">Aplicar Cargo de Quarentena</option>
+                  </select>
+                </div>
+
+                <div class="form-group" style="margin-bottom: 0; grid-column: 1 / -1;">
+                  <label>🏷️ Cargo de Quarentena (Opcional)</label>
+                  <select id="sec-quarantine-role" class="form-control"></select>
+                  <div class="hint">Necessário apenas se a ação selecionada for "Aplicar Cargo de Quarentena".</div>
+                </div>
+              </div>
+
+              <button type="submit" class="btn btn-success" style="margin-top: 1.5rem;"><i class="fa-solid fa-floppy-disk"></i> Salvar Proteções & Segurança</button>
             </form>
           </div>
         </div>

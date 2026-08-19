@@ -88,6 +88,11 @@ module.exports = {
             .setEmoji('⭐')
             .setValue('help_level'),
           new StringSelectMenuOptionBuilder()
+            .setLabel('Social & Casamento')
+            .setDescription('Casamentos, união e divórcio')
+            .setEmoji('💍')
+            .setValue('help_social'),
+          new StringSelectMenuOptionBuilder()
             .setLabel('Configuração (/setup)')
             .setDescription('Painéis, YouTube, Loja e Alertas')
             .setEmoji('⚙️')
@@ -223,6 +228,15 @@ module.exports = {
             '• `/rank [usuario]`: Exibe seu nível, total de XP, ranking e barra de progresso em imagem Canvas.\n' +
             '• `/leaderboard`: Mostra o Top 10 membros com mais XP no servidor.',
           color: COLORS.PRIMARY
+        });
+      } else if (val === 'help_social') {
+        embedToEdit = createEmbed({
+          title: '💍 Módulo Social & Casamentos',
+          description: 'Sistema social de união matrimonial e laços na comunidade.\n\n' +
+            '• `/casar <usuario>`: Envia um pedido formal de casamento com botões interativos 💖/💔.\n' +
+            '• `/casal [usuario]`: Mostra o perfil oficial do casal, aliança, afinidade e dias juntos.\n' +
+            '• `/divorcio`: Termina o casamento atual com diálogo de confirmação.',
+          color: 0xFF69B4
         });
       } else if (val === 'help_setup') {
         embedToEdit = createEmbed({

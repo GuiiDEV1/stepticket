@@ -420,7 +420,16 @@ function createApiRouter(client) {
   // 8. AUTO-MODERAÇÃO (TOGGLES ON/OFF)
   // =========================================================================
   router.post('/guilds/:guildId/automod', requireAuth, requireGuildAdmin(client), (req, res) => {
-    const { anti_invite, anti_links, anti_spam, anti_mass_mention } = req.body;
+    const {
+      anti_invite,
+      anti_links,
+      anti_spam,
+      anti_mass_mention,
+      anti_alt_enabled,
+      min_account_age,
+      alt_action,
+      quarantine_role_id
+    } = req.body;
     const guildId = req.targetGuildId;
 
     DatabaseManager.updateAutoMod(guildId, {
@@ -430,7 +439,14 @@ function createApiRouter(client) {
       anti_mass_mention: anti_mass_mention ? 1 : 0
     });
 
-    res.json({ success: true, message: 'Configurações de Auto-Moderação atualizadas com sucesso!' });
+    DatabaseManager.updateConfig(guildId, {
+      security_anti_alt_enabled: anti_alt_enabled ? 1 : 0,
+      security_min_account_age: parseInt(min_account_age, 10) || 7,
+      security_alt_action: alt_action || 'kick',
+      security_quarantine_role_id: quarantine_role_id || null
+    });
+
+    res.json({ success: true, message: 'Configurações de Auto-Moderação e Segurança atualizadas com sucesso!' });
   });
 
   // =========================================================================

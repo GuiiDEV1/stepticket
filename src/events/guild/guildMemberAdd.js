@@ -6,6 +6,57 @@ module.exports = {
   async execute(member, client) {
     const config = DatabaseManager.getConfig(member.guild.id);
 
+    // ==========================================
+    // 0. FILTRO ANTI-CONTAS FAKE & IDADE MÍNIMA
+    // ==========================================
+    if (config.security_anti_alt_enabled && !member.user.bot) {
+      const minDays = parseInt(config.security_min_account_age, 10) || 7;
+      const accountAgeDays = (Date.now() - member.user.createdTimestamp) / (1000 * 60 * 60 * 24);
+
+      if (accountAgeDays < minDays) {
+        const action = config.security_alt_action || 'kick';
+        const formattedDays = Math.floor(accountAgeDays);
+
+        if (action === 'ban') {
+          await member.ban({ reason: `Anti-Alt: Conta criada há apenas ${formattedDays} dias (Mínimo: ${minDays} dias)` }).catch(() => {});
+        } else if (action === 'quarantine' && config.security_quarantine_role_id) {
+          const qRole = member.guild.roles.cache.get(config.security_quarantine_role_id);
+          if (qRole) await member.roles.set([qRole.id]).catch(() => {});
+        } else {
+          await member.kick(`Anti-Alt: Conta criada há apenas ${formattedDays} dias (Mínimo: ${minDays} dias)`).catch(() => {});
+        }
+
+        // Log nos canais de auditoria
+        if (config.logs_channel_id) {
+          const logsChannel = member.guild.channels.cache.get(config.logs_channel_id);
+          if (logsChannel) {
+            const altEmbed = createEmbed({
+              title: '🛡️ Anti-Alt: Conta Nova Bloqueada',
+              description: `**Membro:** ${member.user.tag} (\`${member.id}\`)\n` +
+                `**Idade da Conta:** ${formattedDays} dia(s)\n` +
+                `**Idade Mínima Exigida:** ${minDays} dias\n` +
+                `**Ação Aplicada:** \`${action.toUpperCase()}\``,
+              color: COLORS.ERROR,
+              thumbnail: member.user.displayAvatarURL({ dynamic: true })
+            });
+            logsChannel.send({ embeds: [altEmbed] }).catch(() => {});
+          }
+        }
+
+        // Log no Feed ao Vivo
+        DatabaseManager.logActivity(member.guild.id, {
+          type: 'automod',
+          icon: '🛡️',
+          title: 'Anti-Alt: Ação Executada',
+          description: `${member.user.tag} punido (${action.toUpperCase()}) por conta com menos de ${minDays} dias.`,
+          user_tag: member.user.tag,
+          user_avatar: member.user.displayAvatarURL({ dynamic: true })
+        });
+
+        return; // Interrompe para não enviar boas-vindas nem autorole para contas bloqueadas
+      }
+    }
+
     // 1. APLICAÇÃO DE AUTOROLE
     try {
       if (member.user.bot && config.bot_autorole_id) {

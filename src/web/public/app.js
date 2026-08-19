@@ -150,11 +150,17 @@ async function loadServerData() {
     populateRoleSelect('shop-role', serverData.roles, '', false);
     renderShopItems();
 
-    // AutoMod Tab
+    // AutoMod & Security Tab
     document.getElementById('am-invite').checked = Boolean(serverData.automod?.anti_invite);
     document.getElementById('am-links').checked = Boolean(serverData.automod?.anti_links);
     document.getElementById('am-spam').checked = Boolean(serverData.automod?.anti_spam);
     document.getElementById('am-mention').checked = Boolean(serverData.automod?.anti_mass_mention);
+
+    // Anti-Alt Shield
+    document.getElementById('sec-anti-alt').checked = Boolean(serverData.config?.security_anti_alt_enabled);
+    document.getElementById('sec-min-age').value = serverData.config?.security_min_account_age || '7';
+    document.getElementById('sec-action').value = serverData.config?.security_alt_action || 'kick';
+    populateRoleSelect('sec-quarantine-role', serverData.roles, serverData.config?.security_quarantine_role_id);
 
     // General / Welcome Tab
     populateSelect('welcome-channel', serverData.textChannels, serverData.config?.welcome_channel_id);
@@ -520,14 +526,18 @@ async function removeShopItem(itemId) {
   }
 }
 
-// 5. AutoMod
+// 5. AutoMod & Segurança
 async function saveAutoMod(e) {
   if (e) e.preventDefault();
   const body = {
     anti_invite: document.getElementById('am-invite').checked,
     anti_links: document.getElementById('am-links').checked,
     anti_spam: document.getElementById('am-spam').checked,
-    anti_mass_mention: document.getElementById('am-mention').checked
+    anti_mass_mention: document.getElementById('am-mention').checked,
+    anti_alt_enabled: document.getElementById('sec-anti-alt').checked,
+    min_account_age: document.getElementById('sec-min-age').value,
+    alt_action: document.getElementById('sec-action').value,
+    quarantine_role_id: document.getElementById('sec-quarantine-role').value
   };
 
   const res = await fetch(`/api/guilds/${guildId}/automod`, {

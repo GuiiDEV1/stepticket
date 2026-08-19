@@ -32,7 +32,11 @@ const DatabaseManager = {
           { id: 'flags', label: 'FastFlags & Otimização', emoji: '⚡', desc: 'Ajuda com configurações e Roblox' },
           { id: 'denuncia', label: 'Denúncias', emoji: '🚨', desc: 'Reportar usuários ou infrações' },
           { id: 'compras', label: 'Compras & VIP', emoji: '🛒', desc: 'Assuntos comerciais e VIP' }
-        ]
+        ],
+        security_anti_alt_enabled: 0,
+        security_min_account_age: 7,
+        security_alt_action: 'kick',
+        security_quarantine_role_id: null
       };
       saveToDisk();
     }
@@ -42,6 +46,9 @@ const DatabaseManager = {
     if (!cfg.ticket_description) cfg.ticket_description = 'Precisa de suporte, tirar dúvidas, fazer compras ou denunciar algo?\n\nSelecione uma das opções abaixo para abrir um ticket privado.';
     if (!cfg.ticket_color) cfg.ticket_color = '#5865F2';
     if (!cfg.ticket_style) cfg.ticket_style = 'select';
+    if (cfg.security_anti_alt_enabled === undefined) cfg.security_anti_alt_enabled = 0;
+    if (!cfg.security_min_account_age) cfg.security_min_account_age = 7;
+    if (!cfg.security_alt_action) cfg.security_alt_action = 'kick';
     if (!Array.isArray(cfg.ticket_categories) || cfg.ticket_categories.length === 0) {
       cfg.ticket_categories = [
         { id: 'suporte', label: 'Suporte Geral', emoji: '🛠️', desc: 'Dúvidas e ajuda geral' },
@@ -693,6 +700,62 @@ const DatabaseManager = {
     if (!store.activity_logs) store.activity_logs = {};
     if (!store.activity_logs[guildId]) store.activity_logs[guildId] = [];
     return store.activity_logs[guildId].slice(0, limit);
+  },
+
+  // ===================== SISTEMA SOCIAL DE CASAMENTO =====================
+  getMarriage(userId) {
+    if (!store.marriages) store.marriages = {};
+    return store.marriages[userId] || null;
+  },
+
+  createMarriage(user1Id, user2Id, guildId, ringType = '💍 Aliança de Ouro') {
+    if (!store.marriages) store.marriages = {};
+    const marriedAt = Date.now();
+    const data1 = {
+      partner_id: user2Id,
+      married_at: marriedAt,
+      ring_type: ringType,
+      affinity: 10,
+      guild_id: guildId
+    };
+    const data2 = {
+      partner_id: user1Id,
+      married_at: marriedAt,
+      ring_type: ringType,
+      affinity: 10,
+      guild_id: guildId
+    };
+
+    store.marriages[user1Id] = data1;
+    store.marriages[user2Id] = data2;
+    saveToDisk();
+    return data1;
+  },
+
+  deleteMarriage(userId) {
+    if (!store.marriages) store.marriages = {};
+    const marriage = store.marriages[userId];
+    if (marriage) {
+      const partnerId = marriage.partner_id;
+      delete store.marriages[userId];
+      if (partnerId) delete store.marriages[partnerId];
+      saveToDisk();
+      return true;
+    }
+    return false;
+  },
+
+  addAffinity(userId, points = 1) {
+    if (!store.marriages) store.marriages = {};
+    const marriage = store.marriages[userId];
+    if (marriage) {
+      marriage.affinity = (marriage.affinity || 0) + points;
+      const partner = store.marriages[marriage.partner_id];
+      if (partner) partner.affinity = marriage.affinity;
+      saveToDisk();
+      return marriage.affinity;
+    }
+    return 0;
   }
 };
 

@@ -20,6 +20,11 @@ const commandsList = [
   require('../commands/economy/apostar.js'),
   require('../commands/economy/loja.js'),
 
+  // Social & Casamento
+  require('../commands/social/casar.js'),
+  require('../commands/social/casal.js'),
+  require('../commands/social/divorcio.js'),
+
   // Giveaways
   require('../commands/giveaways/giveaway.js'),
 

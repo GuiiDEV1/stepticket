@@ -36,7 +36,8 @@ const defaultSchema = {
   youtube_notifications: [], // [ { guild_id, channel_id, youtube_channel_id, last_video_id, custom_message } ]
   web_sessions: {}, // [sessionId]: { sessionId, user, guilds, expiresAt }
   auto_announcements: [], // [ { id, guild_id, channel_id, message, interval_minutes, enabled, last_sent_at } ]
-  activity_logs: {} // { [guild_id]: [ { id, timestamp, type, icon, title, description, user_tag, user_avatar } ] }
+  activity_logs: {}, // { [guild_id]: [ { id, timestamp, type, icon, title, description, user_tag, user_avatar } ] }
+  marriages: {} // { [user_id]: { partner_id, married_at, ring_type, affinity, guild_id } }
 };
 
 let store = { ...defaultSchema };
