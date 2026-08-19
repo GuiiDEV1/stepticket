@@ -756,6 +756,67 @@ const DatabaseManager = {
       return marriage.affinity;
     }
     return 0;
+  },
+
+  // ===================== HUB DE CRIADORES & LIVES =====================
+  getCreators(guildId) {
+    if (!store.creator_notifications) store.creator_notifications = [];
+    return store.creator_notifications.filter(c => c.guild_id === guildId);
+  },
+
+  getAllActiveCreators() {
+    if (!store.creator_notifications) store.creator_notifications = [];
+    return store.creator_notifications.filter(c => c.enabled);
+  },
+
+  createCreator(guildId, { platform, username, channel_id, ping_role_id = null, custom_message = '', color = '#5865F2' }) {
+    if (!store.creator_notifications) store.creator_notifications = [];
+    const item = {
+      id: 'cr_' + Date.now().toString(36) + '_' + Math.random().toString(36).substring(2, 6),
+      guild_id: guildId,
+      platform: platform.toLowerCase(),
+      username: username.trim(),
+      channel_id,
+      ping_role_id: ping_role_id || null,
+      custom_message: custom_message.trim(),
+      color: color || '#5865F2',
+      enabled: 1,
+      last_id: null,
+      is_live: false,
+      last_checked_at: 0
+    };
+    store.creator_notifications.push(item);
+    saveToDisk();
+    return item;
+  },
+
+  updateCreator(guildId, id, updates) {
+    if (!store.creator_notifications) store.creator_notifications = [];
+    const item = store.creator_notifications.find(c => c.guild_id === guildId && c.id === id);
+    if (item) {
+      Object.assign(item, updates);
+      saveToDisk();
+      return item;
+    }
+    return null;
+  },
+
+  deleteCreator(guildId, id) {
+    if (!store.creator_notifications) store.creator_notifications = [];
+    const initialLen = store.creator_notifications.length;
+    store.creator_notifications = store.creator_notifications.filter(c => !(c.guild_id === guildId && c.id === id));
+    const deleted = store.creator_notifications.length !== initialLen;
+    if (deleted) saveToDisk();
+    return deleted;
+  },
+
+  updateCreatorState(id, updates) {
+    if (!store.creator_notifications) store.creator_notifications = [];
+    const item = store.creator_notifications.find(c => c.id === id);
+    if (item) {
+      Object.assign(item, updates);
+      saveToDisk();
+    }
   }
 };
 

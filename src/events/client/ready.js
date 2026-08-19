@@ -5,6 +5,7 @@ const { createEmbed, COLORS } = require('../../utils/embedBuilder.js');
 const { checkRobloxUpdates } = require('../../utils/robloxTracker.js');
 const { checkYouTubeNotifications } = require('../../utils/youtubeTracker.js');
 const { startScheduler } = require('../../utils/scheduler.js');
+const { startCreatorTracker } = require('../../utils/creatorTracker.js');
 
 module.exports = {
   name: Events.ClientReady,
@@ -67,6 +68,9 @@ module.exports = {
 
     // 4. Loop de Avisos Automáticos Agendados
     startScheduler(client);
+
+    // 5. Hub de Notificações de Criadores & Lives (YouTube, Twitch, Kick, TikTok)
+    startCreatorTracker(client);
   }
 };
 

@@ -71,6 +71,9 @@
         <button class="tab-btn" onclick="switchTab('tab-announcements')">
           <i class="fa-solid fa-clock"></i> Avisos Agendados
         </button>
+        <button class="tab-btn" onclick="switchTab('tab-creators')">
+          <i class="fa-solid fa-tower-broadcast"></i> Criadores & Lives
+        </button>
         <button class="tab-btn" onclick="switchTab('tab-feed')">
           <i class="fa-solid fa-rss"></i> Feed ao Vivo
         </button>
@@ -521,6 +524,73 @@
               <i class="fa-solid fa-list-check" style="color: var(--primary);"></i> Avisos Programados Neste Servidor
             </h3>
             <div id="announcements-list" style="display: flex; flex-direction: column; gap: 12px;"></div>
+
+          </div>
+        </div>
+
+        <!-- TAB: CRIADORES & LIVES -->
+        <div id="tab-creators" class="tab-content">
+          <div class="card-panel">
+            <div class="panel-header">
+              <h2><i class="fa-solid fa-tower-broadcast" style="color: var(--primary);"></i> Hub de Criadores & Notificações de Lives</h2>
+              <p>Receba avisos automáticos no Discord sempre que seu canal ou streamer favorito abrir live ou postar novos vídeos.</p>
+            </div>
+
+            <!-- FORMULÁRIO DE CADASTRO -->
+            <form id="form-creator" onsubmit="createCreatorAlert(event)" style="background: rgba(255, 255, 255, 0.02); border: 1px solid var(--border-color); border-radius: var(--radius); padding: 1.5rem; margin-bottom: 2rem;">
+              <h3 style="font-size: 1.05rem; margin-bottom: 1.25rem; color: #FFFFFF; display: flex; align-items: center; gap: 8px;">
+                <i class="fa-solid fa-plus-circle" style="color: var(--primary);"></i> Adicionar Criador / Streamer
+              </h3>
+
+              <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1rem; margin-bottom: 1rem;">
+                <div class="form-group" style="margin-bottom: 0;">
+                  <label>🌐 Plataforma</label>
+                  <select id="cr-platform" class="form-control" onchange="updateCreatorPlaceholder()">
+                    <option value="youtube">🔴 YouTube (Vídeos & Shorts)</option>
+                    <option value="twitch">🟣 Twitch (Transmissões Ao Vivo)</option>
+                    <option value="kick">🟢 Kick.com (Lives Ao Vivo)</option>
+                    <option value="tiktok">🎵 TikTok (Novos Vídeos)</option>
+                  </select>
+                </div>
+
+                <div class="form-group" style="margin-bottom: 0;">
+                  <label>👤 Nome / ID / Link do Canal</label>
+                  <input type="text" id="cr-username" class="form-control" placeholder="Ex: @CanalOficial ou Username" required>
+                </div>
+
+                <div class="form-group" style="margin-bottom: 0;">
+                  <label>📢 Canal de Envio no Discord</label>
+                  <select id="cr-channel" class="form-control" required></select>
+                </div>
+
+                <div class="form-group" style="margin-bottom: 0;">
+                  <label>🏷️ Cargo para Marcar (Opcional)</label>
+                  <select id="cr-ping-role" class="form-control"></select>
+                </div>
+
+                <div class="form-group" style="margin-bottom: 0;">
+                  <label>🎨 Cor do Embed</label>
+                  <input type="color" id="cr-color" class="form-control" value="#5865F2" style="height: 44px; padding: 4px 8px; cursor: pointer;">
+                </div>
+              </div>
+
+              <div class="form-group">
+                <label>📝 Mensagem Customizada</label>
+                <textarea id="cr-custom-msg" class="form-control" rows="2" placeholder="Ex: 🔴 {author} está AO VIVO! Venha conferir: {url}"></textarea>
+                <div class="hint">Variáveis disponíveis: <code>{author}</code> (Nome do criador), <code>{title}</code> (Título), <code>{url}</code> (Link direto), <code>{game}</code> (Jogo/Categoria), <code>{role}</code> (Menção do cargo).</div>
+              </div>
+
+              <button type="submit" class="btn btn-primary"><i class="fa-solid fa-plus"></i> Salvar Alerta de Criador</button>
+            </form>
+
+            <!-- LISTAGEM DE CRIADORES ATIVOS -->
+            <h3 style="font-size: 1.1rem; font-weight: 700; margin-bottom: 1rem; color: #FFFFFF; display: flex; align-items: center; gap: 8px;">
+              <i class="fa-solid fa-list-check" style="color: var(--success);"></i> Canais & Streamers Monitorados
+            </h3>
+
+            <div id="creators-list" style="display: flex; flex-direction: column; gap: 12px;">
+              <div style="color: var(--text-muted); padding: 1rem; text-align: center;">Carregando criadores...</div>
+            </div>
 
           </div>
         </div>

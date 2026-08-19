@@ -137,7 +137,8 @@ function createApiRouter(client) {
       shopItems: shopItems || [],
       automod: automod || { anti_invite: 0, anti_links: 0, anti_spam: 0, anti_mass_mention: 0 },
       announcements: DatabaseManager.getAnnouncements(botGuild.id) || [],
-      activities: DatabaseManager.getActivityLogs(botGuild.id, 50) || []
+      activities: DatabaseManager.getActivityLogs(botGuild.id, 50) || [],
+      creators: DatabaseManager.getCreators(botGuild.id) || []
     });
   });
 
@@ -561,6 +562,89 @@ function createApiRouter(client) {
     const limit = parseInt(req.query.limit) || 50;
     const logs = DatabaseManager.getActivityLogs(guildId, limit);
     res.json(logs);
+  });
+
+  // =========================================================================
+  // 12. HUB DE CRIADORES & LIVES (CRUD & TESTE)
+  // =========================================================================
+  const { sendCreatorAlert } = require('../../utils/creatorTracker.js');
+
+  router.get('/guilds/:guildId/creators', requireAuth, requireGuildAdmin(client), (req, res) => {
+    const guildId = req.targetGuildId;
+    const list = DatabaseManager.getCreators(guildId);
+    res.json(list);
+  });
+
+  router.post('/guilds/:guildId/creators', requireAuth, requireGuildAdmin(client), (req, res) => {
+    const { platform, username, channelId, pingRoleId, customMessage, color } = req.body;
+    const guildId = req.targetGuildId;
+
+    if (!platform || !username || !channelId) {
+      return res.status(400).json({ error: 'Preencha a plataforma, o nome do criador e o canal de envio.' });
+    }
+
+    const item = DatabaseManager.createCreator(guildId, {
+      platform,
+      username,
+      channel_id: channelId,
+      ping_role_id: pingRoleId,
+      custom_message: customMessage,
+      color
+    });
+
+    res.json({ success: true, message: `Canal de ${platform.toUpperCase()} adicionado com sucesso!`, item });
+  });
+
+  router.patch('/guilds/:guildId/creators/:id', requireAuth, requireGuildAdmin(client), (req, res) => {
+    const { id } = req.params;
+    const guildId = req.targetGuildId;
+    const { enabled } = req.body;
+
+    const updated = DatabaseManager.updateCreator(guildId, id, { enabled: Boolean(enabled) });
+    if (!updated) return res.status(404).json({ error: 'Alerta de criador não encontrado.' });
+
+    res.json({ success: true, message: 'Status atualizado com sucesso!' });
+  });
+
+  router.delete('/guilds/:guildId/creators/:id', requireAuth, requireGuildAdmin(client), (req, res) => {
+    const { id } = req.params;
+    const guildId = req.targetGuildId;
+
+    const deleted = DatabaseManager.deleteCreator(guildId, id);
+    if (!deleted) return res.status(404).json({ error: 'Alerta de criador não encontrado.' });
+
+    res.json({ success: true, message: 'Alerta de criador removido com sucesso!' });
+  });
+
+  router.post('/guilds/:guildId/creators/:id/test', requireAuth, requireGuildAdmin(client), async (req, res) => {
+    const { id } = req.params;
+    const guildId = req.targetGuildId;
+
+    const creators = DatabaseManager.getCreators(guildId);
+    const creator = creators.find(c => c.id === id);
+    if (!creator) return res.status(404).json({ error: 'Alerta de criador não encontrado.' });
+
+    const mockData = {
+      id: `test_${Date.now()}`,
+      title: creator.platform === 'twitch' || creator.platform === 'kick'
+        ? `🔴 Transmissão Especial ao Vivo de ${creator.username}!`
+        : `🎬 Novo Vídeo Incrível de ${creator.username}!`,
+      author: creator.username,
+      url: creator.platform === 'youtube'
+        ? `https://www.youtube.com/@${creator.username}`
+        : (creator.platform === 'twitch' ? `https://www.twitch.tv/${creator.username}` : (creator.platform === 'kick' ? `https://kick.com/${creator.username}` : `https://www.tiktok.com/@${creator.username}`)),
+      thumbnail: 'https://cdn.discordapp.com/embed/avatars/0.png',
+      game: 'Roblox / Gameplay',
+      viewers: 1250,
+      type: creator.platform === 'twitch' || creator.platform === 'kick' ? 'stream' : 'video'
+    };
+
+    const sent = await sendCreatorAlert(client, creator, mockData, true);
+    if (sent) {
+      res.json({ success: true, message: `Alerta de teste do ${creator.platform.toUpperCase()} enviado com sucesso!` });
+    } else {
+      res.status(500).json({ error: 'Falha ao enviar alerta de teste no Discord.' });
+    }
   });
 
   return router;

@@ -176,6 +176,11 @@ async function loadServerData() {
     populateSelect('ann-channel', serverData.textChannels, '', false);
     renderAnnouncements();
 
+    // Creators Tab
+    populateSelect('cr-channel', serverData.textChannels, '', false);
+    populateRoleSelect('cr-ping-role', serverData.roles, '', true, 'Nenhum Cargo');
+    renderCreators();
+
     // Activity Feed Tab
     renderActivityFeed();
 
@@ -774,6 +779,161 @@ setInterval(async () => {
     } catch (e) {}
   }
 }, 8000);
+
+// =========================================================================
+// 9. HUB DE CRIADORES & NOTIFICAÇÕES DE LIVES
+// =========================================================================
+function updateCreatorPlaceholder() {
+  const platform = document.getElementById('cr-platform').value;
+  const usernameInput = document.getElementById('cr-username');
+  const customMsg = document.getElementById('cr-custom-msg');
+  const colorInput = document.getElementById('cr-color');
+
+  if (platform === 'youtube') {
+    usernameInput.placeholder = 'Ex: @NomedoCanal ou UCxxxxxx';
+    customMsg.placeholder = '🔴 {author} acabou de postar um novo vídeo! Venha assistir: {url}';
+    colorInput.value = '#FF0000';
+  } else if (platform === 'twitch') {
+    usernameInput.placeholder = 'Ex: alanzoka (apenas o username)';
+    customMsg.placeholder = '🟣 {author} está AO VIVO na Twitch jogando {game}! Link: {url}';
+    colorInput.value = '#9146FF';
+  } else if (platform === 'kick') {
+    usernameInput.placeholder = 'Ex: coringa (apenas o username da Kick)';
+    customMsg.placeholder = '🟢 {author} está AO VIVO na Kick! Venha conferir: {url}';
+    colorInput.value = '#53FC18';
+  } else if (platform === 'tiktok') {
+    usernameInput.placeholder = 'Ex: @criador (username do TikTok)';
+    customMsg.placeholder = '🎵 Novo vídeo de {author} no TikTok! Link: {url}';
+    colorInput.value = '#FE2C55';
+  }
+}
+
+function renderCreators() {
+  const container = document.getElementById('creators-list');
+  if (!container) return;
+
+  const list = serverData.creators || [];
+  if (list.length === 0) {
+    container.innerHTML = '<div style="color: var(--text-muted); padding: 1.5rem; text-align: center; background: rgba(255,255,255,0.02); border-radius: 8px;">Nenhum criador ou streamer cadastrado. Adicione um acima para receber alertas!</div>';
+    return;
+  }
+
+  container.innerHTML = list.map(c => {
+    const channel = (serverData.textChannels || []).find(ch => ch.id === c.channel_id);
+    const channelName = channel ? `#${channel.name}` : `#${c.channel_id}`;
+
+    let platformIcon = 'fa-youtube';
+    let platformColor = '#FF0000';
+    let platformBadge = 'YouTube';
+
+    if (c.platform === 'twitch') {
+      platformIcon = 'fa-twitch';
+      platformColor = '#9146FF';
+      platformBadge = 'Twitch';
+    } else if (c.platform === 'kick') {
+      platformIcon = 'fa-play';
+      platformColor = '#53FC18';
+      platformBadge = 'Kick';
+    } else if (c.platform === 'tiktok') {
+      platformIcon = 'fa-tiktok';
+      platformColor = '#FE2C55';
+      platformBadge = 'TikTok';
+    }
+
+    return `
+      <div style="background: rgba(255,255,255,0.03); border: 1px solid var(--border-color); border-left: 4px solid ${c.color || platformColor}; padding: 1rem 1.25rem; border-radius: 8px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
+        <div style="flex: 1; min-width: 240px;">
+          <div style="display: flex; gap: 8px; align-items: center; margin-bottom: 4px;">
+            <span style="font-weight: 700; color: #FFFFFF; font-size: 0.95rem;">${c.username}</span>
+            <span style="background: rgba(255, 255, 255, 0.08); color: ${platformColor}; font-size: 0.75rem; padding: 2px 8px; border-radius: 4px; font-weight: 600;">${platformBadge}</span>
+            <span style="background: rgba(88, 101, 242, 0.15); color: var(--primary); font-size: 0.75rem; padding: 2px 8px; border-radius: 4px;">${channelName}</span>
+          </div>
+          <div style="color: var(--text-muted); font-size: 0.82rem;">${c.custom_message ? c.custom_message.slice(0, 100) : 'Mensagem padrão do sistema'}</div>
+        </div>
+
+        <div style="display: flex; gap: 8px; align-items: center;">
+          <label style="margin: 0; font-size: 0.85rem; display: flex; align-items: center; gap: 6px; cursor: pointer;">
+            <input type="checkbox" ${c.enabled ? 'checked' : ''} onchange="toggleCreator('${c.id}', this.checked)" style="cursor: pointer;">
+            <span>${c.enabled ? 'Ativo' : 'Pausado'}</span>
+          </label>
+          <button type="button" class="btn btn-secondary" style="padding: 6px 12px; font-size: 0.8rem;" onclick="testCreator('${c.id}')" title="Testar Alerta">
+            <i class="fa-solid fa-paper-plane"></i> Testar
+          </button>
+          <button type="button" class="btn btn-danger" style="padding: 6px 10px; font-size: 0.8rem;" onclick="deleteCreator('${c.id}')" title="Excluir">
+            <i class="fa-solid fa-trash"></i>
+          </button>
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+async function createCreatorAlert(e) {
+  e.preventDefault();
+  const platform = document.getElementById('cr-platform').value;
+  const username = document.getElementById('cr-username').value;
+  const channelId = document.getElementById('cr-channel').value;
+  const pingRoleId = document.getElementById('cr-ping-role').value;
+  const customMessage = document.getElementById('cr-custom-msg').value;
+  const color = document.getElementById('cr-color').value;
+
+  const res = await fetch(`/api/guilds/${guildId}/creators`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ platform, username, channelId, pingRoleId, customMessage, color })
+  });
+
+  const data = await res.json();
+  if (data.success) {
+    showToast(data.message);
+    if (!serverData.creators) serverData.creators = [];
+    serverData.creators.push(data.item);
+    renderCreators();
+    document.getElementById('cr-username').value = '';
+    document.getElementById('cr-custom-msg').value = '';
+  } else {
+    showToast(data.error || 'Erro ao adicionar criador', 'error');
+  }
+}
+
+async function toggleCreator(id, enabled) {
+  const res = await fetch(`/api/guilds/${guildId}/creators/${id}`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ enabled })
+  });
+
+  const data = await res.json();
+  if (data.success) {
+    showToast(`Alerta ${enabled ? 'ativado' : 'pausado'}!`);
+    const item = (serverData.creators || []).find(c => c.id === id);
+    if (item) item.enabled = enabled;
+    renderCreators();
+  }
+}
+
+async function testCreator(id) {
+  const res = await fetch(`/api/guilds/${guildId}/creators/${id}/test`, {
+    method: 'POST'
+  });
+
+  const data = await res.json();
+  if (data.success) showToast(data.message);
+  else showToast(data.error || 'Erro ao testar alerta', 'error');
+}
+
+async function deleteCreator(id) {
+  const res = await fetch(`/api/guilds/${guildId}/creators/${id}`, {
+    method: 'DELETE'
+  });
+
+  const data = await res.json();
+  if (data.success) {
+    showToast(data.message);
+    serverData.creators = (serverData.creators || []).filter(c => c.id !== id);
+    renderCreators();
+  }
+}
 
 // Inicializa
 loadServerData();

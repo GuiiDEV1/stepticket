@@ -37,7 +37,8 @@ const defaultSchema = {
   web_sessions: {}, // [sessionId]: { sessionId, user, guilds, expiresAt }
   auto_announcements: [], // [ { id, guild_id, channel_id, message, interval_minutes, enabled, last_sent_at } ]
   activity_logs: {}, // { [guild_id]: [ { id, timestamp, type, icon, title, description, user_tag, user_avatar } ] }
-  marriages: {} // { [user_id]: { partner_id, married_at, ring_type, affinity, guild_id } }
+  marriages: {}, // { [user_id]: { partner_id, married_at, ring_type, affinity, guild_id } }
+  creator_notifications: [] // [ { id, guild_id, platform, username, channel_id, ping_role_id, custom_message, color, enabled, last_id } ]
 };
 
 let store = { ...defaultSchema };
