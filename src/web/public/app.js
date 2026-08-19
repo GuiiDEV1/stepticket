@@ -1,6 +1,6 @@
-// Recupera o ID do servidor a partir da URL (/dashboard/:guildId)
-const pathSegments = window.location.pathname.split('/');
-const guildId = pathSegments[pathSegments.length - 1] || pathSegments[pathSegments.length - 2];
+// Recupera o ID numérico do servidor a partir da URL (/dashboard/123456789)
+const match = window.location.pathname.match(/\/dashboard\/([0-9]+)/);
+const guildId = match ? match[1] : '';
 
 let serverData = null;
 
@@ -9,6 +9,7 @@ let serverData = null;
 // =========================================================================
 function showToast(message, type = 'success') {
   const container = document.getElementById('toast-container');
+  if (!container) return;
   const toast = document.createElement('div');
   toast.className = `toast ${type}`;
   toast.innerHTML = `
@@ -28,7 +29,9 @@ function switchTab(tabId) {
   document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
   document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
 
-  event.currentTarget.classList.add('active');
+  if (event && event.currentTarget) {
+    event.currentTarget.classList.add('active');
+  }
   const target = document.getElementById(tabId);
   if (target) target.classList.add('active');
 }
@@ -41,7 +44,7 @@ function populateSelect(selectId, items, selectedValue, allowNone = true, noneLa
   if (!select) return;
 
   let html = allowNone ? `<option value="">-- ${noneLabel} --</option>` : '';
-  items.forEach(item => {
+  (items || []).forEach(item => {
     const isSelected = item.id === selectedValue ? 'selected' : '';
     html += `<option value="${item.id}" ${isSelected}># ${item.name}</option>`;
   });
@@ -53,7 +56,7 @@ function populateRoleSelect(selectId, roles, selectedValue, allowNone = true) {
   if (!select) return;
 
   let html = allowNone ? `<option value="">-- Nenhum Cargo Selecionado --</option>` : '';
-  roles.forEach(role => {
+  (roles || []).forEach(role => {
     const isSelected = role.id === selectedValue ? 'selected' : '';
     html += `<option value="${role.id}" ${isSelected}>@ ${role.name}</option>`;
   });
@@ -64,6 +67,11 @@ function populateRoleSelect(selectId, roles, selectedValue, allowNone = true) {
 // CARREGAR DADOS DO SERVIDOR
 // =========================================================================
 async function loadServerData() {
+  if (!guildId) {
+    window.location.href = '/dashboard';
+    return;
+  }
+
   try {
     // 1. Dados do Usuário
     const userRes = await fetch('/api/user');
@@ -72,13 +80,15 @@ async function loadServerData() {
       return;
     }
     const userData = await userRes.json();
-    document.getElementById('user-avatar').src = userData.user.avatar;
-    document.getElementById('user-name').innerText = userData.user.global_name;
+    if (userData.user) {
+      document.getElementById('user-avatar').src = userData.user.avatar;
+      document.getElementById('user-name').innerText = userData.user.global_name;
+    }
 
     // 2. Dados do Servidor
     const res = await fetch(`/api/guilds/${guildId}/data`);
     if (!res.ok) {
-      const err = await res.json();
+      const err = await res.json().catch(() => ({ error: 'Erro de permissão' }));
       showToast(err.error || 'Erro ao carregar dados do servidor', 'error');
       setTimeout(() => { window.location.href = '/dashboard'; }, 2000);
       return;
@@ -87,25 +97,27 @@ async function loadServerData() {
     serverData = await res.json();
 
     // Header
-    document.getElementById('guild-icon-header').src = serverData.guild.icon;
-    document.getElementById('guild-name-header').innerText = serverData.guild.name;
+    if (serverData.guild) {
+      document.getElementById('guild-icon-header').src = serverData.guild.icon;
+      document.getElementById('guild-name-header').innerText = serverData.guild.name;
+    }
 
     // Overview Tab
-    document.getElementById('ov-members').innerText = serverData.guild.memberCount.toLocaleString('pt-BR');
-    document.getElementById('ov-channels').innerText = serverData.textChannels.length;
-    document.getElementById('ov-roles').innerText = serverData.roles.length;
+    document.getElementById('ov-members').innerText = (serverData.guild?.memberCount || 0).toLocaleString('pt-BR');
+    document.getElementById('ov-channels').innerText = (serverData.textChannels || []).length;
+    document.getElementById('ov-roles').innerText = (serverData.roles || []).length;
 
     // Tickets Tab
-    populateSelect('ticket-category', serverData.categories, serverData.config.ticket_category_id, true, 'Sem Categoria');
-    populateRoleSelect('ticket-staff-role', serverData.roles, serverData.config.ticket_staff_role_id);
-    populateSelect('ticket-logs-channel', serverData.textChannels, serverData.config.ticket_logs_id);
+    populateSelect('ticket-category', serverData.categories, serverData.config?.ticket_category_id, true, 'Sem Categoria');
+    populateRoleSelect('ticket-staff-role', serverData.roles, serverData.config?.ticket_staff_role_id);
+    populateSelect('ticket-logs-channel', serverData.textChannels, serverData.config?.ticket_logs_id);
     populateSelect('ticket-panel-channel', serverData.textChannels, '', false);
 
     // Verification Tab
-    document.getElementById('verify-enabled').checked = Boolean(serverData.verification.enabled);
-    document.getElementById('verify-type').value = serverData.verification.type || 'captcha';
-    populateRoleSelect('verify-role', serverData.roles, serverData.verification.role_id);
-    populateSelect('verify-channel', serverData.textChannels, serverData.verification.channel_id);
+    document.getElementById('verify-enabled').checked = Boolean(serverData.verification?.enabled);
+    document.getElementById('verify-type').value = serverData.verification?.type || 'captcha';
+    populateRoleSelect('verify-role', serverData.roles, serverData.verification?.role_id);
+    populateSelect('verify-channel', serverData.textChannels, serverData.verification?.channel_id);
 
     // Roblox Tracker Tab
     populateSelect('roblox-channel', serverData.textChannels, serverData.robloxConfig?.channel_id);
@@ -116,19 +128,19 @@ async function loadServerData() {
     renderShopItems();
 
     // AutoMod Tab
-    document.getElementById('am-invite').checked = Boolean(serverData.automod.anti_invite);
-    document.getElementById('am-links').checked = Boolean(serverData.automod.anti_links);
-    document.getElementById('am-spam').checked = Boolean(serverData.automod.anti_spam);
-    document.getElementById('am-mention').checked = Boolean(serverData.automod.anti_mass_mention);
+    document.getElementById('am-invite').checked = Boolean(serverData.automod?.anti_invite);
+    document.getElementById('am-links').checked = Boolean(serverData.automod?.anti_links);
+    document.getElementById('am-spam').checked = Boolean(serverData.automod?.anti_spam);
+    document.getElementById('am-mention').checked = Boolean(serverData.automod?.anti_mass_mention);
 
     // General / Welcome Tab
-    populateSelect('welcome-channel', serverData.textChannels, serverData.config.welcome_channel_id);
-    document.getElementById('welcome-msg').value = serverData.config.welcome_message || '';
-    populateSelect('logs-channel', serverData.textChannels, serverData.config.logs_channel_id);
-    populateSelect('suggestions-channel', serverData.textChannels, serverData.config.suggestions_channel_id);
+    populateSelect('welcome-channel', serverData.textChannels, serverData.config?.welcome_channel_id);
+    document.getElementById('welcome-msg').value = serverData.config?.welcome_message || '';
+    populateSelect('logs-channel', serverData.textChannels, serverData.config?.logs_channel_id);
+    populateSelect('suggestions-channel', serverData.textChannels, serverData.config?.suggestions_channel_id);
 
   } catch (err) {
-    console.error('Erro:', err);
+    console.error('Erro ao carregar dados do servidor:', err);
     showToast('Falha na comunicação com o servidor.', 'error');
   }
 }
@@ -233,7 +245,7 @@ function testRobloxAlert() {
 // 4. Loja
 function renderShopItems() {
   const tbody = document.getElementById('shop-items-table');
-  if (!serverData.shopItems || serverData.shopItems.length === 0) {
+  if (!serverData || !serverData.shopItems || serverData.shopItems.length === 0) {
     tbody.innerHTML = '<tr><td colspan="5" style="text-align: center; color: var(--text-muted);">Nenhum cargo à venda.</td></tr>';
     return;
   }
@@ -268,6 +280,7 @@ async function addShopItem(e) {
   const data = await res.json();
   if (data.success) {
     showToast(data.message);
+    if (!serverData.shopItems) serverData.shopItems = [];
     serverData.shopItems.push(data.item);
     renderShopItems();
     document.getElementById('shop-price').value = '';

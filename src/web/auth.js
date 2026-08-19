@@ -1,6 +1,6 @@
 const crypto = require('crypto');
 
-// Segredo para assinatura de cookies de sessão (gerado aleatoriamente se não fornecido no .env)
+// Segredo para assinatura de cookies de sessão
 const SESSION_SECRET = process.env.SESSION_SECRET || crypto.randomBytes(32).toString('hex');
 const CLIENT_ID = process.env.CLIENT_ID || '1538556104924070050';
 const CLIENT_SECRET = process.env.CLIENT_SECRET || process.env.DISCORD_CLIENT_SECRET || '';
@@ -25,14 +25,15 @@ function verifySession(signedCookie) {
   if (parts.length !== 2) return null;
 
   const [sessionId, hmac] = parts;
-  const expectedHmac = crypto.createHmac('sha256', SESSION_SECRET).update(sessionId).digest('hex');
-
-  if (crypto.timingSafeEqual(Buffer.from(hmac), Buffer.from(expectedHmac))) {
-    const session = sessions.get(sessionId);
-    if (session && session.expiresAt > Date.now()) {
-      return session;
+  try {
+    const expectedHmac = crypto.createHmac('sha256', SESSION_SECRET).update(sessionId).digest('hex');
+    if (crypto.timingSafeEqual(Buffer.from(hmac), Buffer.from(expectedHmac))) {
+      const session = sessions.get(sessionId);
+      if (session && session.expiresAt > Date.now()) {
+        return session;
+      }
     }
-  }
+  } catch (e) {}
   return null;
 }
 
@@ -122,7 +123,8 @@ function requireAuth(req, res, next) {
     })
   );
 
-  const session = verifySession(cookies.rikeozinho_session);
+  const rawCookie = cookies.rikeozinho_session || cookies.stepticket_session;
+  const session = verifySession(rawCookie);
   if (!session) {
     return res.status(401).json({ error: 'Sessão expirada ou inválida' });
   }
@@ -136,7 +138,7 @@ function requireAuth(req, res, next) {
  * Middleware de segurança contra IDOR: Verifica se o usuário tem permissão de Admin na guild específica
  */
 function requireGuildAdmin(client) {
-  return (req, res, next) => {
+  return async (req, res, next) => {
     const guildId = req.params.guildId || req.body.guildId;
     if (!guildId) {
       return res.status(400).json({ error: 'ID do servidor não fornecido' });
@@ -158,10 +160,18 @@ function requireGuildAdmin(client) {
     }
 
     // Verifica se o bot está no servidor
-    const botGuild = client.guilds.cache.get(guildId);
+    let botGuild = client.guilds.cache.get(guildId);
+    if (!botGuild) {
+      botGuild = await client.guilds.fetch(guildId).catch(() => null);
+    }
+
     if (!botGuild) {
       return res.status(404).json({ error: 'O bot não está presente neste servidor.' });
     }
+
+    // Garante que canais e cargos estejam no cache
+    await botGuild.channels.fetch().catch(() => {});
+    await botGuild.roles.fetch().catch(() => {});
 
     req.botGuild = botGuild;
     req.targetGuildId = guildId;
