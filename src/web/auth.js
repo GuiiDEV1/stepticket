@@ -1,4 +1,5 @@
 const crypto = require('crypto');
+const { PermissionsBitField } = require('discord.js');
 
 // Segredo para assinatura de cookies de sessão
 const SESSION_SECRET = process.env.SESSION_SECRET || crypto.randomBytes(32).toString('hex');
@@ -95,7 +96,7 @@ function createSession(user, guilds) {
   const sessionData = {
     sessionId,
     user,
-    guilds,
+    guilds: guilds || [],
     expiresAt: Date.now() + 1000 * 60 * 60 * 24 * 7 // 7 dias
   };
 
@@ -144,22 +145,7 @@ function requireGuildAdmin(client) {
       return res.status(400).json({ error: 'ID do servidor não fornecido' });
     }
 
-    // Busca o servidor na lista de servidores autorizados do usuário
-    const userGuild = req.userGuilds.find(g => g.id === guildId);
-    if (!userGuild) {
-      return res.status(403).json({ error: 'Você não faz parte deste servidor.' });
-    }
-
-    // Valida permissão de Administrador (0x8) ou Gerenciar Servidor (0x20)
-    const permissions = BigInt(userGuild.permissions || '0');
-    const isAdmin = (permissions & 0x8n) === 0x8n;
-    const isManager = (permissions & 0x20n) === 0x20n;
-
-    if (!userGuild.owner && !isAdmin && !isManager) {
-      return res.status(403).json({ error: 'Você não possui permissão de Administrador neste servidor.' });
-    }
-
-    // Verifica se o bot está no servidor
+    // 1. Busca ou hidrata o servidor no Discord Client
     let botGuild = client.guilds.cache.get(guildId);
     if (!botGuild) {
       botGuild = await client.guilds.fetch(guildId).catch(() => null);
@@ -169,7 +155,29 @@ function requireGuildAdmin(client) {
       return res.status(404).json({ error: 'O bot não está presente neste servidor.' });
     }
 
-    // Garante que canais e cargos estejam no cache
+    // 2. Validação Real-Time no Servidor do Discord
+    const isGuildOwner = botGuild.ownerId === req.user.id;
+    const member = await botGuild.members.fetch(req.user.id).catch(() => null);
+    const isDiscordAdmin = member && (
+      member.permissions.has(PermissionsBitField.Flags.Administrator) ||
+      member.permissions.has(PermissionsBitField.Flags.ManageGuild)
+    );
+
+    // 3. Validação pelo Token OAuth2 (Sessão)
+    const userGuild = (req.userGuilds || []).find(g => g.id === guildId);
+    const permissions = userGuild ? BigInt(userGuild.permissions || '0') : 0n;
+    const isOAuthAdmin = userGuild && (
+      userGuild.owner ||
+      (permissions & 0x8n) === 0x8n ||
+      (permissions & 0x20n) === 0x20n
+    );
+
+    // Se falhar em todas as verificações, rejeita
+    if (!isGuildOwner && !isDiscordAdmin && !isOAuthAdmin) {
+      return res.status(403).json({ error: 'Você não possui permissão de Administrador neste servidor.' });
+    }
+
+    // Garante carregamento de canais e cargos
     await botGuild.channels.fetch().catch(() => {});
     await botGuild.roles.fetch().catch(() => {});
 
