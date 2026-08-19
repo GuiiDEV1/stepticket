@@ -6,6 +6,7 @@
   <title>Gerenciar Servidor - rikeozinho Dashboard</title>
   <link rel="stylesheet" href="/style.css">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
 
@@ -80,6 +81,28 @@
                 <div class="stat-label">Cargos Criados</div>
               </div>
             </div>
+
+            <!-- GRÁFICOS INTERATIVOS -->
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 1.5rem; margin-top: 1.5rem;">
+              <div style="background: rgba(255,255,255,0.02); padding: 1.5rem; border-radius: 12px; border: 1px solid var(--border-color);">
+                <h4 style="margin-bottom: 1rem; display: flex; align-items: center; gap: 8px;">
+                  <i class="fa-solid fa-chart-line" style="color: var(--primary);"></i> Atendimento & Moderação (7 Dias)
+                </h4>
+                <div style="position: relative; height: 220px; width: 100%;">
+                  <canvas id="chart-activity"></canvas>
+                </div>
+              </div>
+
+              <div style="background: rgba(255,255,255,0.02); padding: 1.5rem; border-radius: 12px; border: 1px solid var(--border-color);">
+                <h4 style="margin-bottom: 1rem; display: flex; align-items: center; gap: 8px;">
+                  <i class="fa-solid fa-coins" style="color: var(--warning);"></i> Fluxo da Economia (Coins)
+                </h4>
+                <div style="position: relative; height: 220px; width: 100%;">
+                  <canvas id="chart-economy"></canvas>
+                </div>
+              </div>
+            </div>
+
           </div>
         </div>
 

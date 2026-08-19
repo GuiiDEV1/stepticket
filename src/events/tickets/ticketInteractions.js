@@ -81,8 +81,9 @@ module.exports = {
         ViewChannel: true
       }).catch(() => {});
 
-      // Gera a transcrição em HTML
+      // Gera a transcrição em HTML e salva para visualização online
       const transcriptAttachment = await generateTranscript(interaction.channel);
+      const webTranscriptUrl = `http://localhost:3000${transcriptAttachment.webPath}`;
 
       // Envia nos logs se configurado
       const config = DatabaseManager.getConfig(interaction.guild.id);
@@ -91,7 +92,7 @@ module.exports = {
         if (logChannel) {
           const logEmbed = createEmbed({
             title: '📜 Ticket Encerrado',
-            description: `**Ticket:** #${interaction.channel.name}\n**Criador:** <@${ticket.user_id}>\n**Encerrado por:** ${interaction.user}\n**Motivo:** ${reason}`,
+            description: `**Ticket:** #${interaction.channel.name}\n**Criador:** <@${ticket.user_id}>\n**Encerrado por:** ${interaction.user}\n**Motivo:** ${reason}\n\n🌐 **[Visualizar Transcrição Online no Navegador](${webTranscriptUrl})**`,
             color: COLORS.WARNING,
             footerText: `ID do Usuário: ${ticket.user_id}`
           });
@@ -104,7 +105,7 @@ module.exports = {
       if (ticketOwner) {
         const dmEmbed = createEmbed({
           title: `Atendimento Finalizado - ${interaction.guild.name}`,
-          description: `Seu ticket foi encerrado com sucesso.\n**Fechado por:** ${interaction.user.tag}\n**Motivo:** ${reason}`,
+          description: `Seu ticket foi encerrado com sucesso.\n**Fechado por:** ${interaction.user.tag}\n**Motivo:** ${reason}\n\n🌐 **[Visualizar Histórico Online no Navegador](${webTranscriptUrl})**`,
           color: COLORS.TICKET
         });
         await ticketOwner.send({ embeds: [dmEmbed], files: [transcriptAttachment] }).catch(() => {});
@@ -112,7 +113,7 @@ module.exports = {
 
       const closedEmbed = createEmbed({
         title: '🔒 Atendimento Encerrado',
-        description: `Este ticket foi encerrado por ${interaction.user}.\n**Motivo:** ${reason}\n\nUtilize os botões abaixo para reabrir, baixar a transcrição ou deletar o canal.`,
+        description: `Este ticket foi encerrado por ${interaction.user}.\n**Motivo:** ${reason}\n\n🌐 **[Abrir Transcrição Online no Navegador](${webTranscriptUrl})**\n\nUtilize os botões abaixo para reabrir, baixar o arquivo HTML ou deletar o canal.`,
         color: COLORS.ERROR
       });
 
@@ -124,9 +125,9 @@ module.exports = {
           .setEmoji('🔓'),
         new ButtonBuilder()
           .setCustomId('ticket_btn_transcript')
-          .setLabel('Transcrição')
+          .setLabel('Baixar HTML')
           .setStyle(ButtonStyle.Primary)
-          .setEmoji('📜'),
+          .setEmoji('📥'),
         new ButtonBuilder()
           .setCustomId('ticket_btn_delete')
           .setLabel('Deletar')

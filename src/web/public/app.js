@@ -143,9 +143,102 @@ async function loadServerData() {
     populateSelect('logs-channel', serverData.textChannels, serverData.config?.logs_channel_id);
     populateSelect('suggestions-channel', serverData.textChannels, serverData.config?.suggestions_channel_id);
 
+    // Inicializa Gráficos na aba Visão Geral
+    initCharts();
+
   } catch (err) {
     console.error('Erro ao carregar dados do servidor:', err);
     showToast('Falha na comunicação com o servidor.', 'error');
+  }
+}
+
+// =========================================================================
+// GRÁFICOS CHART.JS (ESTATÍSTICAS & ANALYTICS)
+// =========================================================================
+let activityChart = null;
+let economyChart = null;
+
+async function initCharts() {
+  try {
+    const res = await fetch(`/api/guilds/${guildId}/analytics`);
+    if (!res.ok) return;
+    const data = await res.json();
+
+    // 1. Gráfico de Atendimento & Moderação (Área / Linhas Neon)
+    const ctx1 = document.getElementById('chart-activity');
+    if (ctx1) {
+      if (activityChart) activityChart.destroy();
+      activityChart = new Chart(ctx1, {
+        type: 'line',
+        data: {
+          labels: data.labels,
+          datasets: [
+            {
+              label: 'Tickets Abertos',
+              data: data.tickets,
+              borderColor: '#5865F2',
+              backgroundColor: 'rgba(88, 101, 242, 0.15)',
+              tension: 0.4,
+              fill: true
+            },
+            {
+              label: 'Ações de Moderação',
+              data: data.moderation,
+              borderColor: '#ED4245',
+              backgroundColor: 'rgba(237, 66, 69, 0.15)',
+              tension: 0.4,
+              fill: true
+            }
+          ]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { labels: { color: '#B5BAC1', font: { family: 'Inter' } } }
+          },
+          scales: {
+            x: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#949BA4' } },
+            y: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#949BA4', stepSize: 1 } }
+          }
+        }
+      });
+    }
+
+    // 2. Gráfico da Economia (Barras)
+    const ctx2 = document.getElementById('chart-economy');
+    if (ctx2) {
+      if (economyChart) economyChart.destroy();
+      economyChart = new Chart(ctx2, {
+        type: 'bar',
+        data: {
+          labels: data.labels,
+          datasets: [
+            {
+              label: 'Coins Movimentados',
+              data: data.economy,
+              backgroundColor: 'rgba(254, 231, 92, 0.65)',
+              borderColor: '#FEE75C',
+              borderWidth: 1,
+              borderRadius: 6
+            }
+          ]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { labels: { color: '#B5BAC1', font: { family: 'Inter' } } }
+          },
+          scales: {
+            x: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#949BA4' } },
+            y: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#949BA4' } }
+          }
+        }
+      });
+    }
+  } catch (err) {
+    console.warn('Erro ao carregar gráficos:', err);
   }
 }
 

@@ -1,37 +1,85 @@
+const fs = require('fs');
+const path = require('path');
 const { AttachmentBuilder } = require('discord.js');
 
+// Garante que a pasta persistente de transcrições exista
+const transcriptsDir = path.join(process.cwd(), 'data', 'transcripts');
+try {
+  if (!fs.existsSync(transcriptsDir)) {
+    fs.mkdirSync(transcriptsDir, { recursive: true });
+  }
+} catch (err) {
+  console.warn('[TRANSCRIPTS] Aviso ao criar pasta data/transcripts:', err.message);
+}
+
 /**
- * Gera um arquivo HTML com o histórico completo do canal do ticket (Lazy-load para economizar RAM)
+ * Gera um arquivo HTML com o histórico do ticket, salva no disco para a Web e retorna o anexo
  * @param {import('discord.js').TextChannel} channel 
  * @param {string} fileName 
  */
 async function generateTranscript(channel, fileName = `transcript-${channel.name}.html`) {
+  const safeId = channel.name.replace(/[^a-zA-Z0-9_-]/g, '') || channel.id;
+  const filePath = path.join(transcriptsDir, `${safeId}.html`);
+
   try {
     const discordTranscripts = require('discord-html-transcripts');
-    const attachment = await discordTranscripts.createTranscript(channel, {
+    const buffer = await discordTranscripts.createTranscript(channel, {
       limit: -1,
-      returnType: 'attachment',
+      returnType: 'buffer',
       filename: fileName,
-      saveImages: false, // Economiza muita RAM em hosts de 100MB
+      saveImages: false, // Economiza RAM
       footerText: 'Exportado via rikeozinho',
       poweredBy: false
     });
 
+    // Salva no disco persistente para visualização web
+    try {
+      fs.writeFileSync(filePath, buffer);
+    } catch (e) {
+      console.warn('[TRANSCRIPTS] Erro ao salvar arquivo local:', e.message);
+    }
+
+    const attachment = new AttachmentBuilder(buffer, { name: fileName });
+    attachment.transcriptId = safeId;
+    attachment.webPath = `/transcript/${safeId}`;
     return attachment;
   } catch (error) {
     console.error('Erro ao gerar transcrição em HTML:', error);
-    // Fallback simples e ultra leve em texto
-    const messages = await channel.messages.fetch({ limit: 50 }).catch(() => []);
+    
+    // Fallback em texto puro formatado
+    const messages = await channel.messages.fetch({ limit: 100 }).catch(() => []);
     let txt = `HISTÓRICO DO TICKET: #${channel.name}\nData: ${new Date().toLocaleString('pt-BR')}\n===============================\n\n`;
     messages.reverse().forEach(m => {
       txt += `[${m.createdAt.toLocaleString('pt-BR')}] ${m.author.tag}: ${m.cleanContent}\n`;
     });
 
     const buffer = Buffer.from(txt, 'utf-8');
-    return new AttachmentBuilder(buffer, { name: `transcript-${channel.name}.txt` });
+    try {
+      fs.writeFileSync(path.join(transcriptsDir, `${safeId}.txt`), buffer);
+    } catch (e) {}
+
+    const attachment = new AttachmentBuilder(buffer, { name: `transcript-${channel.name}.txt` });
+    attachment.transcriptId = safeId;
+    attachment.webPath = `/transcript/${safeId}`;
+    return attachment;
   }
 }
 
+/**
+ * Retorna o caminho do arquivo de transcrição salvo
+ */
+function getTranscriptFilePath(id) {
+  const safeId = id.replace(/[^a-zA-Z0-9_-]/g, '');
+  const htmlPath = path.join(transcriptsDir, `${safeId}.html`);
+  if (fs.existsSync(htmlPath)) return { path: htmlPath, type: 'html' };
+
+  const txtPath = path.join(transcriptsDir, `${safeId}.txt`);
+  if (fs.existsSync(txtPath)) return { path: txtPath, type: 'text' };
+
+  return null;
+}
+
 module.exports = {
-  generateTranscript
+  generateTranscript,
+  getTranscriptFilePath
 };

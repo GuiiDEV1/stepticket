@@ -111,6 +111,39 @@ function startServer(client) {
     res.sendFile(path.join(__dirname, 'web', 'public', 'manage.html'));
   });
 
+  // Visualizador Online de Transcrições de Tickets
+  app.get('/transcript/:id', (req, res) => {
+    const { getTranscriptFilePath } = require('./utils/transcript.js');
+    const file = getTranscriptFilePath(req.params.id);
+
+    if (!file) {
+      return res.status(404).send(`
+        <!DOCTYPE html>
+        <html lang="pt-BR">
+        <head>
+          <meta charset="UTF-8">
+          <title>Transcrição Não Encontrada - rikeozinho</title>
+          <link rel="stylesheet" href="/style.css">
+        </head>
+        <body style="display: flex; align-items: center; justify-content: center; min-height: 100vh; text-align: center;">
+          <div class="card-panel" style="max-width: 480px; padding: 3rem;">
+            <i class="fa-solid fa-file-circle-xmark" style="font-size: 3.5rem; color: var(--danger); margin-bottom: 1rem;"></i>
+            <h2>Transcrição Não Encontrada</h2>
+            <p style="color: var(--text-muted); margin-top: 8px;">Este relatório de atendimento não existe ou foi removido do servidor.</p>
+            <a href="/dashboard" class="btn btn-primary" style="margin-top: 1.5rem; display: inline-block;">Voltar ao Dashboard</a>
+          </div>
+        </body>
+        </html>
+      `);
+    }
+
+    if (file.type === 'html') {
+      return res.type('html').sendFile(file.path);
+    } else {
+      return res.type('text').sendFile(file.path);
+    }
+  });
+
   // Healthcheck / Ping
   app.get('/ping', (req, res) => {
     res.status(200).send('pong');
