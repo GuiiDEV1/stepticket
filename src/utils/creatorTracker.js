@@ -310,6 +310,9 @@ function startCreatorTracker(client) {
             }
           }
         }
+
+        // Espaçamento de 250ms entre cada criador para evitar rajadas na rede externa
+        await new Promise(r => setTimeout(r, 250));
       }
     } catch (err) {
       // Ignora erros transitórios de rede
