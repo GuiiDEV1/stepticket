@@ -24,6 +24,9 @@ module.exports = {
     ),
 
   async execute(interaction, client) {
+    // 1. Defer inicial imediato (evita timeout de 3 segundos do Discord em chamadas HTTP)
+    await interaction.deferReply();
+
     let subcommand = 'versao';
     try {
       subcommand = interaction.options.getSubcommand();
@@ -38,24 +41,21 @@ module.exports = {
     // =========================================================================
     if (subcommand === 'testar') {
       if (!interaction.member || !interaction.member.permissions.has(PermissionFlagsBits.Administrator)) {
-        return interaction.reply({
-          embeds: [errorEmbed('Sem Permissão', 'Apenas administradores podem testar o envio de alertas.')],
-          ephemeral: true
+        return interaction.editReply({
+          embeds: [errorEmbed('Sem Permissão', 'Apenas administradores podem testar o envio de alertas.')]
         });
       }
 
       if (!serverConfig) {
-        return interaction.reply({
-          embeds: [warningEmbed('Canal Não Configurado', 'Você ainda não configurou um canal de alertas neste servidor!\nUse o comando: `/setup roblox-tracker <canal> [cargo_ping]`.')],
-          ephemeral: true
+        return interaction.editReply({
+          embeds: [warningEmbed('Canal Não Configurado', 'Você ainda não configurou um canal de alertas neste servidor!\nUse o comando: `/setup roblox-tracker <canal> [cargo_ping]`.')]
         });
       }
 
       const targetChannel = interaction.guild.channels.cache.get(serverConfig.channel_id);
       if (!targetChannel) {
-        return interaction.reply({
-          embeds: [errorEmbed('Canal Inválido', 'O canal configurado não foi encontrado. Configure novamente com `/setup roblox-tracker`.')],
-          ephemeral: true
+        return interaction.editReply({
+          embeds: [errorEmbed('Canal Inválido', 'O canal configurado não foi encontrado. Configure novamente com `/setup roblox-tracker`.')]
         });
       }
 
@@ -84,20 +84,18 @@ module.exports = {
 
       try {
         await targetChannel.send({ content, embeds: [alertEmbed] });
-        return interaction.reply({
-          embeds: [successEmbed('Teste Enviado com Sucesso!', `O alerta de teste foi postado no canal <#${targetChannel.id}>!`)],
-          ephemeral: true
+        return interaction.editReply({
+          embeds: [successEmbed('Teste Enviado com Sucesso!', `O alerta de teste foi postado no canal <#${targetChannel.id}>!`)]
         });
       } catch (err) {
-        return interaction.reply({
-          embeds: [errorEmbed('Falha no Envio', `O bot não conseguiu enviar mensagem no canal <#${targetChannel.id}>. Verifique as permissões de "Enviar Mensagens" e "Inserir Links".`)],
-          ephemeral: true
+        return interaction.editReply({
+          embeds: [errorEmbed('Falha no Envio', `O bot não conseguiu enviar mensagem no canal <#${targetChannel.id}>. Verifique as permissões de "Enviar Mensagens" e "Inserir Links".`)]
         });
       }
     }
 
     // =========================================================================
-    // SUBCOMANDOS: STATUS
+    // SUBCOMANDO: STATUS
     // =========================================================================
     if (subcommand === 'status') {
       const versions = await fetchRobloxLiveVersions();
@@ -122,7 +120,7 @@ module.exports = {
         footerText: 'Dica: Use /roblox testar para simular um alerta no canal'
       });
 
-      return interaction.reply({ embeds: [statusEmbed] });
+      return interaction.editReply({ embeds: [statusEmbed] });
     }
 
     // =========================================================================
@@ -130,9 +128,8 @@ module.exports = {
     // =========================================================================
     const versions = await fetchRobloxLiveVersions();
     if (!versions || !versions.player) {
-      return interaction.reply({
-        embeds: [errorEmbed('Erro ao Consultar', 'Não foi possível obter dados da API da Roblox no momento.')],
-        ephemeral: true
+      return interaction.editReply({
+        embeds: [errorEmbed('Erro ao Consultar', 'Não foi possível obter dados da API da Roblox no momento.')]
       });
     }
 
@@ -164,6 +161,6 @@ module.exports = {
       footerText: 'Sincronizado em tempo real'
     });
 
-    return interaction.reply({ embeds: [embed] });
+    return interaction.editReply({ embeds: [embed] });
   }
 };
