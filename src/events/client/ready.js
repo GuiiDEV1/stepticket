@@ -45,7 +45,10 @@ module.exports = {
       console.error('Erro ao registrar comandos na API:', err);
     });
 
-    // 1. Loop de Sorteios (Giveaways - a cada 15 segundos)
+    // 1. Loop de Sorteios (Giveaways - a cada 15 segundos e reconciliação imediata no boot)
+    setTimeout(() => {
+      checkGiveaways(client);
+    }, 3000);
     setInterval(() => {
       checkGiveaways(client);
     }, 15000);

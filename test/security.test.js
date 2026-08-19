@@ -5,7 +5,7 @@ const { signSession, verifySession, createSession } = require('../src/web/auth')
 const DatabaseManager = require('../src/database/manager');
 const { getTranscriptFilePath } = require('../src/utils/transcript');
 
-console.log('🧪 Iniciando Bateria Expandida de Testes Automatizados de Segurança...\n');
+console.log('🧪 Iniciando Bateria Completa de Testes de Segurança e Autorização...\n');
 
 let totalTests = 0;
 let passedTests = 0;
@@ -99,7 +99,6 @@ runTest('Lidar com strings nulas ou indefinidas com segurança', () => {
 console.log('\n🔤 3. Testes de Normalização Anti-Evasão (AutoMod):');
 
 runTest('Remover Zero-Width Spaces e caracteres invisíveis de links proibidos', () => {
-  // "discord.gg/invite" intercalado com zero-width spaces
   const stealthInvite = 'dis\u200Bcord.\u200Cgg/in\u200Dvite123';
   const cleaned = normalizeMessageContent(stealthInvite);
   assert.strictEqual(cleaned, 'discord.gg/invite123');
@@ -134,17 +133,14 @@ runTest('Permitir requisições dentro da cota e bloquear com 429 ao exceder', (
     }
   };
 
-  // Req 1 -> Passa
   limiter(mockReq, mockRes, () => { nextCalled++; });
   assert.strictEqual(nextCalled, 1);
 
-  // Req 2 -> Passa
   limiter(mockReq, mockRes, () => { nextCalled++; });
   assert.strictEqual(nextCalled, 2);
 
-  // Req 3 -> Bloqueia (429)
   limiter(mockReq, mockRes, () => { nextCalled++; });
-  assert.strictEqual(nextCalled, 2); // Não chamou next
+  assert.strictEqual(nextCalled, 2);
   assert.strictEqual(statusResult, 429);
   assert.strictEqual(jsonResult.error, 'Limite atingido');
 });
@@ -163,7 +159,6 @@ runTest('Assinatura e Verificação de Sessão Legítima', () => {
   assert.notStrictEqual(session, null);
   assert.strictEqual(session.user.id, 'test_sec_user_123');
 
-  // Limpeza
   DatabaseManager.deleteSession(sessionId);
 });
 
@@ -181,7 +176,6 @@ runTest('Impedir que Servidor B altere ou delete Aviso do Servidor A', () => {
   const guildA = 'guild_alpha_111';
   const guildB = 'guild_bravo_222';
 
-  // Cria aviso para Guild A
   const annA = DatabaseManager.createAnnouncement(guildA, {
     channel_id: 'chan_a',
     title: 'Aviso da Guild A',
@@ -190,15 +184,12 @@ runTest('Impedir que Servidor B altere ou delete Aviso do Servidor A', () => {
     enabled: true
   });
 
-  // Tenta atualizar a partir de Guild B -> Deve retornar null
   const updatedByB = DatabaseManager.updateAnnouncement(guildB, annA.id, { title: 'Hackeado por B' });
   assert.strictEqual(updatedByB, null);
 
-  // Tenta deletar a partir de Guild B -> Deve retornar false
   const deletedByB = DatabaseManager.deleteAnnouncement(guildB, annA.id);
   assert.strictEqual(deletedByB, false);
 
-  // Deleta legitimamente pela Guild A -> Deve retornar true
   const deletedByA = DatabaseManager.deleteAnnouncement(guildA, annA.id);
   assert.strictEqual(deletedByA, true);
 });
@@ -227,7 +218,6 @@ runTest('Bloquear Débito com Saldo Insuficiente', () => {
   const guildId = 'test_eco_guild';
   const userId = 'test_poor_user';
 
-  // Garante que o saldo seja zerado
   const eco = DatabaseManager.getEconomy(guildId, userId);
   if (eco.wallet > 0) DatabaseManager.removeWallet(guildId, userId, eco.wallet);
 
@@ -246,9 +236,55 @@ runTest('Operação de Débito e Estorno Atômico', () => {
   assert.strictEqual(deducted, true);
   assert.strictEqual(DatabaseManager.getEconomy(guildId, userId).wallet, initialWallet - 400);
 
-  // Estorno
   DatabaseManager.addWallet(guildId, userId, 400);
   assert.strictEqual(DatabaseManager.getEconomy(guildId, userId).wallet, initialWallet);
+});
+
+// -------------------------------------------------------------
+// 9. TESTES DE AUTORIZAÇÃO DE TICKETS & SUGESTÕES (IN-BAND)
+// -------------------------------------------------------------
+console.log('\n🎟️ 9. Testes de Autorização In-Band (Tickets & Sugestões):');
+
+runTest('Isolamento de tickets: validação de criador e canal', () => {
+  const testChannelId = 'channel_ticket_sec_1';
+  DatabaseManager.createTicket({
+    channelId: testChannelId,
+    guildId: 'guild_ticket_sec',
+    userId: 'user_ticket_owner_99',
+    category: 'Suporte Geral'
+  });
+
+  const ticket = DatabaseManager.getTicketByChannel(testChannelId);
+  assert.strictEqual(ticket.user_id, 'user_ticket_owner_99');
+  assert.strictEqual(ticket.status, 'open');
+
+  DatabaseManager.updateTicket(testChannelId, { status: 'closed', closed_by: 'staff_user_1' });
+  const updatedTicket = DatabaseManager.getTicketByChannel(testChannelId);
+  assert.strictEqual(updatedTicket.status, 'closed');
+  assert.strictEqual(updatedTicket.closed_by, 'staff_user_1');
+});
+
+runTest('Reconciliação de Sorteios Ativos', () => {
+  const messageId = `msg_gw_${Date.now()}`;
+  DatabaseManager.createGiveaway({
+    id: 'GW-test-sec',
+    messageId: messageId,
+    channelId: 'chan_gw',
+    guildId: 'guild_gw',
+    prize: 'VIP Role',
+    winnersCount: 1,
+    hostId: 'admin_host',
+    endsAt: Date.now() - 1000 // Já expirado
+  });
+
+  const active = DatabaseManager.getActiveGiveaways();
+  const found = active.find(g => g.message_id === messageId);
+  assert.ok(found);
+  assert.ok(found.ends_at <= Date.now());
+
+  DatabaseManager.endGiveaway(messageId);
+  const activeAfter = DatabaseManager.getActiveGiveaways();
+  assert.strictEqual(activeAfter.find(g => g.message_id === messageId), undefined);
 });
 
 // -------------------------------------------------------------

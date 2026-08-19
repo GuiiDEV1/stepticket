@@ -48,10 +48,24 @@ module.exports = {
       });
     }
 
+    const config = DatabaseManager.getConfig(interaction.guild.id);
+    const isStaff = interaction.member.permissions.has(PermissionFlagsBits.ManageChannels) ||
+      interaction.member.permissions.has(PermissionFlagsBits.Administrator) ||
+      interaction.member.permissions.has(PermissionFlagsBits.ManageMessages) ||
+      (config.ticket_staff_role_id && interaction.member.roles.cache.has(config.ticket_staff_role_id));
+    const isOwner = interaction.user.id === ticket.user_id;
+
     const subcommand = interaction.options.getSubcommand();
 
-    // 1. FECHAR
+    // 1. FECHAR (Staff ou Dono do Ticket)
     if (subcommand === 'fechar') {
+      if (!isStaff && !isOwner) {
+        return interaction.reply({
+          embeds: [errorEmbed('Sem Permissão', 'Apenas a equipe de suporte ou o autor do atendimento podem encerrar este ticket.')],
+          ephemeral: true
+        });
+      }
+
       const reason = interaction.options.getString('motivo') || 'Fechamento via comando /ticket fechar';
       await interaction.deferReply();
 
@@ -69,7 +83,6 @@ module.exports = {
 
       const attachment = await generateTranscript(interaction.channel);
 
-      const config = DatabaseManager.getConfig(interaction.guild.id);
       if (config.ticket_logs_id) {
         const logChannel = interaction.guild.channels.cache.get(config.ticket_logs_id);
         if (logChannel) {
@@ -91,8 +104,15 @@ module.exports = {
       return interaction.editReply({ embeds: [closedEmbed] });
     }
 
-    // 2. REABRIR
+    // 2. REABRIR (Staff ou Dono do Ticket)
     if (subcommand === 'reabrir') {
+      if (!isStaff && !isOwner) {
+        return interaction.reply({
+          embeds: [errorEmbed('Sem Permissão', 'Apenas a equipe de suporte ou o autor original podem reabrir este ticket.')],
+          ephemeral: true
+        });
+      }
+
       DatabaseManager.updateTicket(interaction.channel.id, { status: 'open' });
       await interaction.channel.permissionOverwrites.edit(ticket.user_id, {
         SendMessages: true,
@@ -105,8 +125,15 @@ module.exports = {
       });
     }
 
-    // 3. ASSUMIR
+    // 3. ASSUMIR (Restrito à Staff)
     if (subcommand === 'assumir') {
+      if (!isStaff) {
+        return interaction.reply({
+          embeds: [errorEmbed('Acesso Restrito', 'Apenas membros da equipe de suporte podem assumir atendimentos.')],
+          ephemeral: true
+        });
+      }
+
       if (ticket.claimed_by) {
         return interaction.reply({
           embeds: [warningEmbed('Já Reivindicado', `Este ticket já foi assumido por <@${ticket.claimed_by}>.`)],
@@ -120,8 +147,15 @@ module.exports = {
       });
     }
 
-    // 4. ADICIONAR MEMBRO
+    // 4. ADICIONAR MEMBRO (Staff ou Dono do Ticket)
     if (subcommand === 'adicionar') {
+      if (!isStaff && !isOwner) {
+        return interaction.reply({
+          embeds: [errorEmbed('Sem Permissão', 'Apenas a equipe ou o autor do ticket podem adicionar membros ao atendimento.')],
+          ephemeral: true
+        });
+      }
+
       const user = interaction.options.getUser('usuario');
       await interaction.channel.permissionOverwrites.edit(user.id, {
         ViewChannel: true,
@@ -135,8 +169,15 @@ module.exports = {
       });
     }
 
-    // 5. REMOVER MEMBRO
+    // 5. REMOVER MEMBRO (Restrito à Staff)
     if (subcommand === 'remover') {
+      if (!isStaff) {
+        return interaction.reply({
+          embeds: [errorEmbed('Acesso Restrito', 'Apenas a moderação pode remover membros do canal de ticket.')],
+          ephemeral: true
+        });
+      }
+
       const user = interaction.options.getUser('usuario');
       if (user.id === ticket.user_id) {
         return interaction.reply({
@@ -152,7 +193,7 @@ module.exports = {
       });
     }
 
-    // 6. TRANSCRIÇÃO
+    // 6. TRANSCRIÇÃO (Qualquer participante do ticket pode solicitar)
     if (subcommand === 'transcricao') {
       await interaction.deferReply();
       const attachment = await generateTranscript(interaction.channel);
@@ -162,10 +203,17 @@ module.exports = {
       });
     }
 
-    // 7. DELETAR
+    // 7. DELETAR (Restrito à Staff com ManageChannels / Admin)
     if (subcommand === 'deletar') {
+      if (!isStaff) {
+        return interaction.reply({
+          embeds: [errorEmbed('Permissão Negada', 'Apenas moderadores com permissão de gerenciar canais podem excluir tickets permanentemente.')],
+          ephemeral: true
+        });
+      }
+
       await interaction.reply({
-        embeds: [warningEmbed('Deletando Canal', 'Este ticket será excluído em **5 segundos**...')]
+        embeds: [warningEmbed('Deletando Canal', 'Este ticket será excluído permanentemente em **5 segundos** por solicitação da Staff...')]
       });
 
       setTimeout(() => {

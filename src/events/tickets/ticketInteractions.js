@@ -68,6 +68,18 @@ module.exports = {
         });
       }
 
+      const config = DatabaseManager.getConfig(interaction.guild.id);
+      const isStaff = interaction.member.permissions.has(PermissionFlagsBits.ManageChannels) ||
+        interaction.member.permissions.has(PermissionFlagsBits.Administrator) ||
+        (config.ticket_staff_role_id && interaction.member.roles.cache.has(config.ticket_staff_role_id));
+      const isOwner = interaction.user.id === ticket.user_id;
+
+      if (!isStaff && !isOwner) {
+        return interaction.editReply({
+          embeds: [errorEmbed('Sem Permissão', 'Apenas a equipe de suporte ou o autor do atendimento podem encerrar este ticket.')]
+        });
+      }
+
       DatabaseManager.updateTicket(interaction.channel.id, {
         status: 'closed',
         closed_by: interaction.user.id,
@@ -86,7 +98,6 @@ module.exports = {
       const webTranscriptUrl = `http://localhost:3000${transcriptAttachment.webPath}`;
 
       // Envia nos logs se configurado
-      const config = DatabaseManager.getConfig(interaction.guild.id);
       if (config.ticket_logs_id) {
         const logChannel = await interaction.guild.channels.fetch(config.ticket_logs_id).catch(() => null);
         if (logChannel) {

@@ -82,8 +82,15 @@ module.exports = {
       return;
     }
 
-    // 3. PROCESSAMENTO DO MODAL DE APROVAÇÃO / REJEIÇÃO
+    // 3. PROCESSAMENTO DO MODAL DE APROVAÇÃO / REJEIÇÃO (COM VALIDAÇÃO DE STAFF)
     if (interaction.isModalSubmit() && (interaction.customId === 'modal_suggest_accept' || interaction.customId === 'modal_suggest_reject')) {
+      if (!interaction.member.permissions.has(PermissionFlagsBits.ManageGuild) && !interaction.member.permissions.has(PermissionFlagsBits.Administrator)) {
+        return interaction.reply({
+          embeds: [errorEmbed('Permissão Negada', 'Apenas membros da equipe de moderação podem aprovar ou rejeitar sugestões.')],
+          ephemeral: true
+        });
+      }
+
       const isApproved = interaction.customId === 'modal_suggest_accept';
       const reason = interaction.fields.getTextInputValue('staff_reason');
       const suggestion = DatabaseManager.getSuggestionByMessage(interaction.message.id);
