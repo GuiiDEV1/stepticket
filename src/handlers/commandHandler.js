@@ -81,14 +81,13 @@ function loadCommands(client) {
 }
 
 /**
- * Registra os Slash Commands na API do Discord
+ * Registra os Slash Commands GLOBALMENTE na API do Discord (sem duplicatas)
  * @param {import('discord.js').Client} client 
  */
 async function registerCommands(client) {
   const commandsArray = commandsList.map(c => c.data.toJSON());
   const token = process.env.DISCORD_TOKEN;
   const clientId = process.env.CLIENT_ID || (client.user ? client.user.id : null);
-  const explicitGuildId = process.env.GUILD_ID;
 
   if (!token) return;
   if (!clientId) {
@@ -99,35 +98,24 @@ async function registerCommands(client) {
   const rest = new REST({ version: '10' }).setToken(token);
 
   try {
-    console.log('🔄 Registrando Slash Commands na API do Discord...');
+    console.log('🔄 Registrando Slash Commands GLOBALMENTE no Discord...');
 
-    // 1. Registro Instantâneo em cada servidor conectado
+    // Limpa eventuais comandos duplicados por servidor (Guild)
     if (client.guilds && client.guilds.cache.size > 0) {
-      for (const [guildId, guild] of client.guilds.cache) {
-        try {
-          await rest.put(
-            Routes.applicationGuildCommands(clientId, guildId),
-            { body: commandsArray }
-          );
-          console.log(`⚡ Comandos atualizados INSTANTANEAMENTE no servidor: ${guild.name} (${guildId})`);
-        } catch (err) {
-          console.warn(`Aviso ao registrar comandos no servidor ${guildId}:`, err.message);
-        }
+      for (const [guildId] of client.guilds.cache) {
+        await rest.put(
+          Routes.applicationGuildCommands(clientId, guildId),
+          { body: [] }
+        ).catch(() => {});
       }
-    } else if (explicitGuildId) {
-      await rest.put(
-        Routes.applicationGuildCommands(clientId, explicitGuildId),
-        { body: commandsArray }
-      );
-      console.log(`✅ Slash Commands registrados no Servidor (Guild ID: ${explicitGuildId})!`);
     }
 
-    // 2. Registro Global (Garante disponibilidade geral)
+    // Registra apenas globalmente (1 única entrada limpa por comando)
     await rest.put(
       Routes.applicationCommands(clientId),
       { body: commandsArray }
     );
-    console.log('✅ Slash Commands registrados GLOBALMENTE com sucesso!');
+    console.log(`✅ ${commandsArray.length} Slash Commands registrados GLOBALMENTE (Zero Duplicatas)!`);
   } catch (error) {
     console.error('❌ Erro ao registrar Slash Commands na API:', error.message || error);
   }
