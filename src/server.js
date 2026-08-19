@@ -24,6 +24,21 @@ function startServer(client) {
   // ROTAS DE AUTENTICAÇÃO DISCORD OAUTH2
   // =========================================================================
   app.get('/auth/login', (req, res) => {
+    // Se o usuário já possui sessão válida persistente, vai direto para o dashboard
+    const cookieHeader = req.headers.cookie;
+    if (cookieHeader && !req.query.force) {
+      const cookies = Object.fromEntries(
+        cookieHeader.split('; ').map(c => {
+          const [k, ...v] = c.split('=');
+          return [k, decodeURIComponent(v.join('='))];
+        })
+      );
+      const session = verifySession(cookies.rikeozinho_session || cookies.stepticket_session);
+      if (session) {
+        return res.redirect('/dashboard');
+      }
+    }
+
     const host = req.get('host');
     const protocol = req.protocol === 'https' || req.get('x-forwarded-proto') === 'https' ? 'https' : 'http';
     const redirectUri = `${protocol}://${host}/auth/callback`;

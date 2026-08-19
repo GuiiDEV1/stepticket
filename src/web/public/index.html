@@ -30,7 +30,7 @@
       <p>Configure tickets com transcrições em HTML, verificação por Captcha visual, rastreador de versões do Roblox, economia completa, auto-moderação e alertas de YouTube em uma única interface moderna.</p>
 
       <div class="hero-actions">
-        <a href="/auth/login" class="btn btn-primary" style="padding: 0.85rem 1.85rem; font-size: 1.05rem;">
+        <a id="hero-cta-btn" href="/auth/login" class="btn btn-primary" style="padding: 0.85rem 1.85rem; font-size: 1.05rem;">
           <i class="fa-solid fa-sliders"></i> Acessar Painel Web
         </a>
         <a id="invite-btn" href="https://discord.com/oauth2/authorize?client_id=1538556104924070050&permissions=8&integration_type=0&scope=bot+applications.commands" target="_blank" class="btn btn-secondary" style="padding: 0.85rem 1.85rem; font-size: 1.05rem;">
@@ -78,7 +78,14 @@
               <span>${authData.user.global_name}</span>
             </a>
             <a href="/dashboard" class="btn btn-primary"><i class="fa-solid fa-sliders"></i> Meu Dashboard</a>
+            <a href="/auth/logout" class="btn btn-secondary" title="Sair"><i class="fa-solid fa-right-from-bracket"></i></a>
           `;
+
+          const heroBtn = document.getElementById('hero-cta-btn');
+          if (heroBtn) {
+            heroBtn.href = '/dashboard';
+            heroBtn.innerHTML = '<i class="fa-solid fa-sliders"></i> Ir para o Dashboard';
+          }
         }
 
         const statsRes = await fetch('/api/stats');
