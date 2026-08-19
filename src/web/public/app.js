@@ -100,10 +100,14 @@ async function loadServerData() {
 
     serverData = await res.json();
 
-    // Header
+    // Header & Banner
     if (serverData.guild) {
       document.getElementById('guild-icon-header').src = serverData.guild.icon;
       document.getElementById('guild-name-header').innerText = serverData.guild.name;
+      const bannerIcon = document.getElementById('guild-banner-icon');
+      const bannerName = document.getElementById('guild-banner-name');
+      if (bannerIcon) bannerIcon.src = serverData.guild.icon;
+      if (bannerName) bannerName.innerText = serverData.guild.name;
     }
 
     // Overview Tab

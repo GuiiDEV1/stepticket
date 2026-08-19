@@ -91,6 +91,9 @@
         } else {
           activeContainer.innerHTML = guildsData.activeGuilds.map(g => `
             <div class="guild-card active">
+              <div style="position: absolute; top: 14px; right: 14px; display: flex; align-items: center; gap: 6px; background: rgba(35, 165, 90, 0.12); padding: 3px 8px; border-radius: 20px; font-size: 0.75rem; color: var(--success); font-weight: 600; border: 1px solid rgba(35, 165, 90, 0.3);">
+                <span style="width: 6px; height: 6px; border-radius: 50%; background: var(--success); box-shadow: 0 0 6px var(--success);"></span> Ativo
+              </div>
               <img src="${g.icon}" class="guild-icon" alt="${g.name}">
               <div class="guild-name" title="${g.name}">${g.name}</div>
               <div class="guild-info"><i class="fa-solid fa-users"></i> ${g.memberCount || 0} membros</div>
