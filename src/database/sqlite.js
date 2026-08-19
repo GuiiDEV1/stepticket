@@ -34,7 +34,9 @@ const defaultSchema = {
   economy: {}, // { [`${guild_id}_${user_id}`]: { guild_id, user_id, wallet, bank, last_daily, last_work } }
   economy_shop: [], // [ { id, guild_id, role_id, name, price, description } ]
   youtube_notifications: [], // [ { guild_id, channel_id, youtube_channel_id, last_video_id, custom_message } ]
-  web_sessions: {} // [sessionId]: { sessionId, user, guilds, expiresAt }
+  web_sessions: {}, // [sessionId]: { sessionId, user, guilds, expiresAt }
+  auto_announcements: [], // [ { id, guild_id, channel_id, message, interval_minutes, enabled, last_sent_at } ]
+  activity_logs: {} // { [guild_id]: [ { id, timestamp, type, icon, title, description, user_tag, user_avatar } ] }
 };
 
 let store = { ...defaultSchema };

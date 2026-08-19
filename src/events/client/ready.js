@@ -4,6 +4,7 @@ const DatabaseManager = require('../../database/manager.js');
 const { createEmbed, COLORS } = require('../../utils/embedBuilder.js');
 const { checkRobloxUpdates } = require('../../utils/robloxTracker.js');
 const { checkYouTubeNotifications } = require('../../utils/youtubeTracker.js');
+const { startScheduler } = require('../../utils/scheduler.js');
 
 module.exports = {
   name: Events.ClientReady,
@@ -52,7 +53,6 @@ module.exports = {
     setInterval(() => {
       checkRobloxUpdates(client);
     }, 120000);
-    // Executa uma checagem inicial após 10 segundos
     setTimeout(() => {
       checkRobloxUpdates(client);
     }, 10000);
@@ -64,6 +64,9 @@ module.exports = {
     setTimeout(() => {
       checkYouTubeNotifications(client);
     }, 15000);
+
+    // 4. Loop de Avisos Automáticos Agendados
+    startScheduler(client);
   }
 };
 

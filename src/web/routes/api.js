@@ -135,7 +135,9 @@ function createApiRouter(client) {
       robloxConfig: robloxConfig || { channel_id: '', ping_role_id: null },
       youtubeNotifications: youtubeNotifications || [],
       shopItems: shopItems || [],
-      automod: automod || { anti_invite: 0, anti_links: 0, anti_spam: 0, anti_mass_mention: 0 }
+      automod: automod || { anti_invite: 0, anti_links: 0, anti_spam: 0, anti_mass_mention: 0 },
+      announcements: DatabaseManager.getAnnouncements(botGuild.id) || [],
+      activities: DatabaseManager.getActivityLogs(botGuild.id, 50) || []
     });
   });
 
@@ -446,6 +448,103 @@ function createApiRouter(client) {
     });
 
     res.json({ success: true, message: 'Configurações gerais salvas com sucesso!' });
+  });
+
+  // =========================================================================
+  // 10. AVISOS AUTOMÁTICOS AGENDADOS (CRUD & TESTE)
+  // =========================================================================
+  router.get('/guilds/:guildId/announcements', requireAuth, requireGuildAdmin(client), (req, res) => {
+    const guildId = req.targetGuildId;
+    const list = DatabaseManager.getAnnouncements(guildId);
+    res.json(list);
+  });
+
+  router.post('/guilds/:guildId/announcements', requireAuth, requireGuildAdmin(client), (req, res) => {
+    const { channelId, title, message, color, intervalMinutes } = req.body;
+    const guildId = req.targetGuildId;
+
+    if (!channelId || !message) {
+      return res.status(400).json({ error: 'Canal e mensagem são obrigatórios.' });
+    }
+
+    const item = DatabaseManager.createAnnouncement(guildId, {
+      channel_id: channelId,
+      title: title || null,
+      message,
+      color: color || '#5865F2',
+      interval_minutes: parseInt(intervalMinutes) || 60,
+      enabled: true
+    });
+
+    res.json({ success: true, item, message: 'Aviso agendado criado com sucesso!' });
+  });
+
+  router.patch('/guilds/:guildId/announcements/:id', requireAuth, requireGuildAdmin(client), (req, res) => {
+    const { id } = req.params;
+    const updates = req.body;
+
+    const updated = DatabaseManager.updateAnnouncement(id, updates);
+    if (!updated) return res.status(404).json({ error: 'Aviso não encontrado.' });
+
+    res.json({ success: true, item: updated, message: 'Aviso atualizado!' });
+  });
+
+  router.delete('/guilds/:guildId/announcements/:id', requireAuth, requireGuildAdmin(client), (req, res) => {
+    const { id } = req.params;
+    DatabaseManager.deleteAnnouncement(id);
+    res.json({ success: true, message: 'Aviso agendado removido!' });
+  });
+
+  router.post('/guilds/:guildId/announcements/:id/test', requireAuth, requireGuildAdmin(client), async (req, res) => {
+    const { id } = req.params;
+    const botGuild = req.botGuild;
+    const list = DatabaseManager.getAnnouncements(botGuild.id);
+    const item = list.find(a => a.id === id);
+
+    if (!item) return res.status(404).json({ error: 'Aviso não encontrado.' });
+
+    const channel = botGuild.channels.cache.get(item.channel_id);
+    if (!channel || !channel.isTextBased()) {
+      return res.status(400).json({ error: 'Canal de destino inválido ou inacessível pelo bot.' });
+    }
+
+    let color = COLORS.PRIMARY;
+    if (item.color) {
+      const cleanHex = item.color.replace('#', '');
+      const parsed = parseInt(cleanHex, 16);
+      if (!isNaN(parsed)) color = parsed;
+    }
+
+    const embed = createEmbed({
+      title: item.title || `📢 Comunicado • ${botGuild.name}`,
+      description: item.message,
+      color: color,
+      footerText: 'Teste de Aviso Automático • rikeozinho',
+      thumbnail: botGuild.iconURL({ dynamic: true })
+    });
+
+    try {
+      await channel.send({ embeds: [embed] });
+      DatabaseManager.logActivity(botGuild.id, {
+        type: 'general',
+        icon: '📢',
+        title: 'Teste de Aviso Agendado',
+        description: `Aviso "${item.title || 'Comunicado'}" testado em #${channel.name}`
+      });
+      res.json({ success: true, message: 'Aviso disparado com sucesso no canal!' });
+    } catch (err) {
+      res.status(500).json({ error: 'Erro ao enviar mensagem no Discord: ' + err.message });
+    }
+  });
+
+  // =========================================================================
+  // 11. FEED DE ATIVIDADES AO VIVO
+  // =========================================================================
+  router.get('/guilds/:guildId/activities', requireAuth, requireGuildAdmin(client), (req, res) => {
+    const guildId = req.targetGuildId;
+    const limit = parseInt(req.query.limit) || 50;
+    const logs = DatabaseManager.getActivityLogs(guildId, limit);
+    res.json(logs);
   });
 
   return router;

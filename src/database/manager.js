@@ -611,6 +611,88 @@ const DatabaseManager = {
     if (!store.web_sessions) store.web_sessions = {};
     delete store.web_sessions[sessionId];
     saveToDisk();
+  },
+
+  // ===================== AUTO ANNOUNCEMENTS (AVISOS AGENDADOS) =====================
+  getAnnouncements(guildId) {
+    if (!store.auto_announcements) store.auto_announcements = [];
+    return store.auto_announcements.filter(a => a.guild_id === guildId);
+  },
+
+  getAllActiveAnnouncements() {
+    if (!store.auto_announcements) store.auto_announcements = [];
+    return store.auto_announcements.filter(a => a.enabled);
+  },
+
+  createAnnouncement(guildId, data) {
+    if (!store.auto_announcements) store.auto_announcements = [];
+    const id = 'ann_' + Date.now().toString(36) + '_' + Math.random().toString(36).substring(2, 6);
+    const item = {
+      id,
+      guild_id: guildId,
+      channel_id: data.channel_id,
+      title: data.title || null,
+      message: data.message || '',
+      color: data.color || '#5865F2',
+      interval_minutes: parseInt(data.interval_minutes) || 60,
+      enabled: data.enabled !== undefined ? Boolean(data.enabled) : true,
+      last_sent_at: 0,
+      created_at: Date.now()
+    };
+    store.auto_announcements.push(item);
+    saveToDisk();
+    return item;
+  },
+
+  updateAnnouncement(id, updates) {
+    if (!store.auto_announcements) store.auto_announcements = [];
+    const idx = store.auto_announcements.findIndex(a => a.id === id);
+    if (idx !== -1) {
+      store.auto_announcements[idx] = { ...store.auto_announcements[idx], ...updates };
+      saveToDisk();
+      return store.auto_announcements[idx];
+    }
+    return null;
+  },
+
+  deleteAnnouncement(id) {
+    if (!store.auto_announcements) store.auto_announcements = [];
+    store.auto_announcements = store.auto_announcements.filter(a => a.id !== id);
+    saveToDisk();
+  },
+
+  // ===================== ACTIVITY LOGS (FEED DE ATIVIDADES AO VIVO) =====================
+  logActivity(guildId, { type = 'general', icon = '📌', title, description, user_tag = null, user_avatar = null, metadata = {} }) {
+    if (!store.activity_logs) store.activity_logs = {};
+    if (!store.activity_logs[guildId]) store.activity_logs[guildId] = [];
+
+    const activity = {
+      id: 'act_' + Date.now().toString(36) + '_' + Math.random().toString(36).substring(2, 6),
+      timestamp: Date.now(),
+      type, // 'ticket' | 'mod' | 'automod' | 'member' | 'economy' | 'general'
+      icon,
+      title,
+      description,
+      user_tag,
+      user_avatar,
+      metadata
+    };
+
+    store.activity_logs[guildId].unshift(activity);
+
+    // Mantém no máximo os 100 eventos mais recentes por servidor
+    if (store.activity_logs[guildId].length > 100) {
+      store.activity_logs[guildId] = store.activity_logs[guildId].slice(0, 100);
+    }
+
+    saveToDisk();
+    return activity;
+  },
+
+  getActivityLogs(guildId, limit = 50) {
+    if (!store.activity_logs) store.activity_logs = {};
+    if (!store.activity_logs[guildId]) store.activity_logs[guildId] = [];
+    return store.activity_logs[guildId].slice(0, limit);
   }
 };
 

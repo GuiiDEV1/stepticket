@@ -49,6 +49,12 @@
         <button class="tab-btn" onclick="switchTab('tab-automod')">
           <i class="fa-solid fa-robot"></i> Auto-Moderação
         </button>
+        <button class="tab-btn" onclick="switchTab('tab-announcements')">
+          <i class="fa-solid fa-clock"></i> Avisos Agendados
+        </button>
+        <button class="tab-btn" onclick="switchTab('tab-feed')">
+          <i class="fa-solid fa-rss"></i> Feed ao Vivo
+        </button>
         <button class="tab-btn" onclick="switchTab('tab-welcome')">
           <i class="fa-solid fa-hand-wave"></i> Boas-Vindas & Logs
         </button>
@@ -393,7 +399,101 @@
           </div>
         </div>
 
-        <!-- TAB 7: BOAS-VINDAS & LOGS -->
+        <!-- TAB 6: AVISOS AGENDADOS -->
+        <div id="tab-announcements" class="tab-content">
+          <div class="card-panel">
+            <div class="panel-header">
+              <h2><i class="fa-solid fa-clock" style="color: var(--primary);"></i> Avisos Automáticos Agendados</h2>
+              <p>Envie mensagens periódicas automaticamente em canais do Discord com intervalo definido.</p>
+            </div>
+
+            <!-- FORMULÁRIO DE NOVO AVISO -->
+            <div style="background: rgba(255,255,255,0.02); padding: 1.5rem; border-radius: 10px; border: 1px solid var(--border-color); margin-bottom: 2rem;">
+              <h3 style="font-size: 1.05rem; margin-bottom: 1rem; color: #FFFFFF; display: flex; align-items: center; gap: 8px;">
+                <i class="fa-solid fa-plus-circle" style="color: var(--success);"></i> Criar Novo Aviso Programado
+              </h3>
+              
+              <form id="form-create-announcement" onsubmit="createAnnouncement(event)">
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 1rem; margin-bottom: 1rem;">
+                  <div class="form-group" style="margin-bottom: 0;">
+                    <label>📍 Canal de Envio</label>
+                    <select id="ann-channel" class="form-control" required></select>
+                  </div>
+
+                  <div class="form-group" style="margin-bottom: 0;">
+                    <label>⏰ Intervalo de Repetição</label>
+                    <select id="ann-interval" class="form-control">
+                      <option value="15">A cada 15 Minutos</option>
+                      <option value="30">A cada 30 Minutos</option>
+                      <option value="60" selected>A cada 1 Hora</option>
+                      <option value="120">A cada 2 Horas</option>
+                      <option value="360">A cada 6 Horas</option>
+                      <option value="720">A cada 12 Horas</option>
+                      <option value="1440">A cada 24 Horas (1 Dia)</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div class="form-group">
+                  <label>📌 Título do Aviso (Opcional)</label>
+                  <input type="text" id="ann-title" class="form-control" placeholder="Ex: 📢 Lembrete de Regras & Boosts">
+                </div>
+
+                <div class="form-group">
+                  <label>📝 Conteúdo da Mensagem</label>
+                  <textarea id="ann-message" class="form-control" rows="3" placeholder="Escreva a mensagem ou aviso que o bot postará periodicamente..." required></textarea>
+                </div>
+
+                <div style="display: flex; gap: 10px; align-items: center; margin-bottom: 1.25rem;">
+                  <label style="margin: 0; font-size: 0.9rem;">🎨 Cor do Embed:</label>
+                  <input type="color" id="ann-color-picker" value="#5865F2" style="width: 35px; height: 35px; border: none; border-radius: 6px; background: transparent; cursor: pointer;" oninput="document.getElementById('ann-color').value = this.value">
+                  <input type="text" id="ann-color" class="form-control" value="#5865F2" style="width: 110px;" oninput="document.getElementById('ann-color-picker').value = this.value">
+                </div>
+
+                <button type="submit" class="btn btn-primary"><i class="fa-solid fa-calendar-plus"></i> Agendar Aviso</button>
+              </form>
+            </div>
+
+            <!-- LISTA DE AVISOS ATIVOS -->
+            <h3 style="font-size: 1.05rem; margin-bottom: 1rem; color: #FFFFFF;">
+              <i class="fa-solid fa-list-check" style="color: var(--primary);"></i> Avisos Programados Neste Servidor
+            </h3>
+            <div id="announcements-list" style="display: flex; flex-direction: column; gap: 12px;"></div>
+
+          </div>
+        </div>
+
+        <!-- TAB 7: FEED AO VIVO -->
+        <div id="tab-feed" class="tab-content">
+          <div class="card-panel">
+            <div class="panel-header" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
+              <div>
+                <h2><i class="fa-solid fa-rss" style="color: var(--primary);"></i> Feed de Atividades ao Vivo</h2>
+                <p>Linha do tempo em tempo real com auditoria de eventos no servidor.</p>
+              </div>
+              <div style="display: flex; align-items: center; gap: 8px; font-size: 0.85rem; color: var(--success); background: rgba(35, 165, 90, 0.1); padding: 6px 14px; border-radius: 20px; border: 1px solid rgba(35, 165, 90, 0.3);">
+                <i class="fa-solid fa-circle" style="font-size: 0.5rem; animation: pulse 2s infinite;"></i> Atualizando ao vivo
+              </div>
+            </div>
+
+            <!-- FILTROS DO FEED -->
+            <div style="display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 1.5rem;" id="feed-filters">
+              <button type="button" class="btn btn-secondary" onclick="filterActivityFeed('all')" id="filter-all" style="background: var(--primary); color: #fff;">Todos</button>
+              <button type="button" class="btn btn-secondary" onclick="filterActivityFeed('ticket')" id="filter-ticket">🎫 Tickets</button>
+              <button type="button" class="btn btn-secondary" onclick="filterActivityFeed('member')" id="filter-member">👥 Membros</button>
+              <button type="button" class="btn btn-secondary" onclick="filterActivityFeed('automod')" id="filter-automod">🤖 AutoMod</button>
+              <button type="button" class="btn btn-secondary" onclick="filterActivityFeed('general')" id="filter-general">📌 Geral & Bot</button>
+            </div>
+
+            <!-- CONTAINER DA TIMELINE -->
+            <div id="activity-timeline" style="display: flex; flex-direction: column; gap: 10px;">
+              <div style="color: var(--text-muted); text-align: center; padding: 2rem;">Carregando eventos recentes...</div>
+            </div>
+
+          </div>
+        </div>
+
+        <!-- TAB 8: BOAS-VINDAS & LOGS -->
         <div id="tab-welcome" class="tab-content">
           <div class="card-panel">
             <div class="panel-header">

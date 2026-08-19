@@ -99,6 +99,17 @@ module.exports = {
             logChannel.send({ embeds: [logEmbed] }).catch(() => {});
           }
         }
+
+        // FEED DE ATIVIDADES AO VIVO NO DASHBOARD
+        DatabaseManager.logActivity(message.guild.id, {
+          type: 'automod',
+          icon: '🤖',
+          title: 'AutoMod: Violação Bloqueada',
+          description: `${message.author.tag} teve mensagem deletada em #${message.channel.name}. Motivo: ${violationReason}`,
+          user_tag: message.author.tag,
+          user_avatar: message.author.displayAvatarURL({ dynamic: true })
+        });
+
         return; // Interrompe para não computar XP
       }
     }

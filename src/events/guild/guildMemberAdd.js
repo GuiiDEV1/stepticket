@@ -55,5 +55,15 @@ module.exports = {
         logsChannel.send({ embeds: [logEmbed] }).catch(() => {});
       }
     }
+
+    // 4. FEED DE ATIVIDADES AO VIVO NO DASHBOARD
+    DatabaseManager.logActivity(member.guild.id, {
+      type: 'member',
+      icon: '📥',
+      title: 'Novo Membro',
+      description: `${member.user.tag} entrou no servidor. Total agora: ${member.guild.memberCount} membros.`,
+      user_tag: member.user.tag,
+      user_avatar: member.user.displayAvatarURL({ dynamic: true })
+    });
   }
 };

@@ -162,6 +162,13 @@ async function loadServerData() {
     populateSelect('logs-channel', serverData.textChannels, serverData.config?.logs_channel_id);
     populateSelect('suggestions-channel', serverData.textChannels, serverData.config?.suggestions_channel_id);
 
+    // Announcements Tab
+    populateSelect('ann-channel', serverData.textChannels, '', false);
+    renderAnnouncements();
+
+    // Activity Feed Tab
+    renderActivityFeed();
+
     // Inicializa Gráficos na aba Visão Geral
     initCharts();
 
@@ -554,6 +561,205 @@ async function saveGeneral(e) {
   if (data.success) showToast(data.message);
   else showToast(data.error || 'Erro ao salvar', 'error');
 }
+
+// =========================================================================
+// 7. AVISOS AUTOMÁTICOS AGENDADOS
+// =========================================================================
+function renderAnnouncements() {
+  const container = document.getElementById('announcements-list');
+  if (!container) return;
+
+  const list = serverData.announcements || [];
+  if (list.length === 0) {
+    container.innerHTML = '<div style="color: var(--text-muted); padding: 1.5rem; text-align: center; background: rgba(255,255,255,0.02); border-radius: 8px;">Nenhum aviso programado. Crie um acima para começar!</div>';
+    return;
+  }
+
+  container.innerHTML = list.map(a => {
+    const channel = (serverData.textChannels || []).find(c => c.id === a.channel_id);
+    const channelName = channel ? `#${channel.name}` : `#${a.channel_id}`;
+    
+    let intervalText = `${a.interval_minutes} min`;
+    if (a.interval_minutes === 60) intervalText = '1 hora';
+    else if (a.interval_minutes === 120) intervalText = '2 horas';
+    else if (a.interval_minutes === 360) intervalText = '6 horas';
+    else if (a.interval_minutes === 720) intervalText = '12 horas';
+    else if (a.interval_minutes === 1440) intervalText = '24 horas';
+
+    return `
+      <div style="background: rgba(255,255,255,0.03); border: 1px solid var(--border-color); border-left: 4px solid ${a.color || '#5865F2'}; padding: 1rem 1.25rem; border-radius: 8px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
+        <div style="flex: 1; min-width: 240px;">
+          <div style="display: flex; gap: 8px; align-items: center; margin-bottom: 4px;">
+            <span style="font-weight: 600; color: #FFFFFF; font-size: 0.95rem;">${a.title || 'Aviso Automático'}</span>
+            <span style="background: rgba(88, 101, 242, 0.15); color: var(--primary); font-size: 0.75rem; padding: 2px 8px; border-radius: 4px;">${channelName}</span>
+            <span style="background: rgba(254, 231, 92, 0.15); color: var(--warning); font-size: 0.75rem; padding: 2px 8px; border-radius: 4px;">⏰ A cada ${intervalText}</span>
+          </div>
+          <div style="color: var(--text-muted); font-size: 0.85rem; line-height: 1.3;">${a.message.slice(0, 120)}${a.message.length > 120 ? '...' : ''}</div>
+        </div>
+
+        <div style="display: flex; gap: 8px; align-items: center;">
+          <label style="margin: 0; font-size: 0.85rem; display: flex; align-items: center; gap: 6px; cursor: pointer;">
+            <input type="checkbox" ${a.enabled ? 'checked' : ''} onchange="toggleAnnouncement('${a.id}', this.checked)" style="cursor: pointer;">
+            <span>${a.enabled ? 'Ativo' : 'Pausado'}</span>
+          </label>
+          <button type="button" class="btn btn-secondary" style="padding: 6px 12px; font-size: 0.8rem;" onclick="testAnnouncement('${a.id}')" title="Testar Envio Agora">
+            <i class="fa-solid fa-paper-plane"></i> Testar
+          </button>
+          <button type="button" class="btn btn-danger" style="padding: 6px 10px; font-size: 0.8rem;" onclick="deleteAnnouncement('${a.id}')" title="Excluir">
+            <i class="fa-solid fa-trash"></i>
+          </button>
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+async function createAnnouncement(e) {
+  e.preventDefault();
+  const channelId = document.getElementById('ann-channel').value;
+  const intervalMinutes = document.getElementById('ann-interval').value;
+  const title = document.getElementById('ann-title').value;
+  const message = document.getElementById('ann-message').value;
+  const color = document.getElementById('ann-color').value;
+
+  const res = await fetch(`/api/guilds/${guildId}/announcements`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ channelId, intervalMinutes, title, message, color })
+  });
+
+  const data = await res.json();
+  if (data.success) {
+    showToast(data.message);
+    if (!serverData.announcements) serverData.announcements = [];
+    serverData.announcements.push(data.item);
+    renderAnnouncements();
+    document.getElementById('ann-title').value = '';
+    document.getElementById('ann-message').value = '';
+  } else {
+    showToast(data.error || 'Erro ao criar aviso', 'error');
+  }
+}
+
+async function toggleAnnouncement(id, enabled) {
+  const res = await fetch(`/api/guilds/${guildId}/announcements/${id}`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ enabled })
+  });
+
+  const data = await res.json();
+  if (data.success) {
+    showToast(`Aviso ${enabled ? 'ativado' : 'pausado'}!`);
+    const item = (serverData.announcements || []).find(a => a.id === id);
+    if (item) item.enabled = enabled;
+    renderAnnouncements();
+  }
+}
+
+async function testAnnouncement(id) {
+  const res = await fetch(`/api/guilds/${guildId}/announcements/${id}/test`, {
+    method: 'POST'
+  });
+
+  const data = await res.json();
+  if (data.success) showToast(data.message);
+  else showToast(data.error || 'Erro ao testar aviso', 'error');
+}
+
+async function deleteAnnouncement(id) {
+  const res = await fetch(`/api/guilds/${guildId}/announcements/${id}`, {
+    method: 'DELETE'
+  });
+
+  const data = await res.json();
+  if (data.success) {
+    showToast(data.message);
+    serverData.announcements = (serverData.announcements || []).filter(a => a.id !== id);
+    renderAnnouncements();
+  }
+}
+
+// =========================================================================
+// 8. FEED DE ATIVIDADES AO VIVO
+// =========================================================================
+let currentActivityFilter = 'all';
+
+function renderActivityFeed(filter = currentActivityFilter) {
+  currentActivityFilter = filter;
+  const container = document.getElementById('activity-timeline');
+  if (!container) return;
+
+  const logs = serverData.activities || [];
+  const filtered = filter === 'all' ? logs : logs.filter(l => l.type === filter);
+
+  if (filtered.length === 0) {
+    container.innerHTML = '<div style="color: var(--text-muted); text-align: center; padding: 2rem;">Nenhuma atividade registrada nesta categoria ainda.</div>';
+    return;
+  }
+
+  container.innerHTML = filtered.map(log => {
+    const timeAgo = formatTimeAgo(log.timestamp);
+    let badgeColor = 'var(--primary)';
+    if (log.type === 'ticket') badgeColor = '#5865F2';
+    else if (log.type === 'member') badgeColor = '#23A55A';
+    else if (log.type === 'automod') badgeColor = '#ED4245';
+    else if (log.type === 'mod') badgeColor = '#FEE75C';
+
+    const avatar = log.user_avatar || 'https://cdn.discordapp.com/embed/avatars/0.png';
+
+    return `
+      <div style="background: rgba(255,255,255,0.02); border: 1px solid var(--border-color); border-radius: 8px; padding: 12px 16px; display: flex; align-items: center; gap: 14px;">
+        <img src="${avatar}" style="width: 38px; height: 38px; border-radius: 50%; object-fit: cover; flex-shrink: 0;" alt="Avatar">
+        <div style="flex: 1; min-width: 0;">
+          <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 2px;">
+            <span style="font-size: 0.95rem; font-weight: 600; color: #FFFFFF;">${log.icon} ${log.title}</span>
+            <span style="font-size: 0.75rem; color: ${badgeColor}; background: rgba(255,255,255,0.05); padding: 1px 6px; border-radius: 4px; text-transform: uppercase;">${log.type}</span>
+          </div>
+          <div style="font-size: 0.85rem; color: #DBDEE1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${log.description}</div>
+        </div>
+        <div style="font-size: 0.75rem; color: var(--text-muted); white-space: nowrap; flex-shrink: 0;">${timeAgo}</div>
+      </div>
+    `;
+  }).join('');
+}
+
+function filterActivityFeed(type) {
+  const buttons = document.querySelectorAll('#feed-filters button');
+  buttons.forEach(b => {
+    b.style.background = 'var(--bg-card)';
+    b.style.color = 'var(--text-muted)';
+  });
+  const activeBtn = document.getElementById(`filter-${type}`);
+  if (activeBtn) {
+    activeBtn.style.background = 'var(--primary)';
+    activeBtn.style.color = '#FFFFFF';
+  }
+  renderActivityFeed(type);
+}
+
+function formatTimeAgo(timestamp) {
+  const diff = Math.floor((Date.now() - timestamp) / 1000);
+  if (diff < 60) return 'Agora mesmo';
+  if (diff < 3600) return `Há ${Math.floor(diff / 60)} min`;
+  if (diff < 86400) return `Há ${Math.floor(diff / 3600)} horas`;
+  return `Há ${Math.floor(diff / 86400)} dias`;
+}
+
+// Auto-refresh feed a cada 8 segundos
+setInterval(async () => {
+  if (!guildId) return;
+  const feedTab = document.getElementById('tab-feed');
+  if (feedTab && feedTab.classList.contains('active')) {
+    try {
+      const res = await fetch(`/api/guilds/${guildId}/activities?limit=50`);
+      if (res.ok) {
+        serverData.activities = await res.json();
+        renderActivityFeed();
+      }
+    } catch (e) {}
+  }
+}, 8000);
 
 // Inicializa
 loadServerData();

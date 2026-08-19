@@ -111,6 +111,17 @@ module.exports = {
         await ticketOwner.send({ embeds: [dmEmbed], files: [transcriptAttachment] }).catch(() => {});
       }
 
+      // FEED DE ATIVIDADES AO VIVO NO DASHBOARD
+      DatabaseManager.logActivity(interaction.guild.id, {
+        type: 'ticket',
+        icon: '🔒',
+        title: 'Ticket Encerrado',
+        description: `#${interaction.channel.name} fechado por ${interaction.user.tag}. Motivo: ${reason}`,
+        user_tag: interaction.user.tag,
+        user_avatar: interaction.user.displayAvatarURL({ dynamic: true }),
+        metadata: { webTranscriptUrl }
+      });
+
       const closedEmbed = createEmbed({
         title: '🔒 Atendimento Encerrado',
         description: `Este ticket foi encerrado por ${interaction.user}.\n**Motivo:** ${reason}\n\n🌐 **[Abrir Transcrição Online no Navegador](${webTranscriptUrl})**\n\nUtilize os botões abaixo para reabrir, baixar o arquivo HTML ou deletar o canal.`,
@@ -359,6 +370,16 @@ async function handleTicketCreate(interaction, category) {
     await interaction.editReply({
       embeds: [successEmbed('Ticket Criado!', `Seu atendimento foi aberto com sucesso em ${ticketChannel}!`)],
       ephemeral: true
+    });
+
+    // FEED DE ATIVIDADES AO VIVO NO DASHBOARD
+    DatabaseManager.logActivity(guild.id, {
+      type: 'ticket',
+      icon: '🎫',
+      title: 'Ticket Aberto',
+      description: `#${ticketChannel.name} criado por ${user.tag} (${selectedCategoryName})`,
+      user_tag: user.tag,
+      user_avatar: user.displayAvatarURL({ dynamic: true })
     });
   } catch (error) {
     console.error('Erro ao criar canal de ticket:', error);

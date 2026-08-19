@@ -33,5 +33,15 @@ module.exports = {
         logsChannel.send({ embeds: [logEmbed] }).catch(() => {});
       }
     }
+
+    // FEED DE ATIVIDADES AO VIVO NO DASHBOARD
+    DatabaseManager.logActivity(member.guild.id, {
+      type: 'member',
+      icon: '📤',
+      title: 'Membro Saiu',
+      description: `${member.user.tag} saiu do servidor. Total restante: ${member.guild.memberCount} membros.`,
+      user_tag: member.user.tag,
+      user_avatar: member.user.displayAvatarURL({ dynamic: true })
+    });
   }
 };
