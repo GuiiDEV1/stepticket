@@ -2,11 +2,24 @@ const crypto = require('crypto');
 const { PermissionsBitField } = require('discord.js');
 const DatabaseManager = require('../database/manager.js');
 
-// Segredo para assinatura de cookies de sessão (Gera chave criptográfica segura se não estiver no .env)
+const fs = require('fs');
+const path = require('path');
+
+// Segredo para assinatura de cookies de sessão (Carrega do .env ou de data/.session_secret persistente)
 const SESSION_SECRET = process.env.SESSION_SECRET || (function() {
-  const generated = crypto.randomBytes(64).toString('hex');
-  console.warn('⚠️ [SEGURANÇA] SESSION_SECRET não foi definido no .env. Uma chave criptográfica aleatória segura de 64 bytes foi gerada para esta execução.');
-  return generated;
+  const secretPath = path.join(process.cwd(), 'data', '.session_secret');
+  try {
+    if (fs.existsSync(secretPath)) {
+      const savedSecret = fs.readFileSync(secretPath, 'utf8').trim();
+      if (savedSecret.length >= 32) return savedSecret;
+    }
+    const generated = crypto.randomBytes(64).toString('hex');
+    fs.mkdirSync(path.dirname(secretPath), { recursive: true });
+    fs.writeFileSync(secretPath, generated, 'utf8');
+    return generated;
+  } catch (e) {
+    return crypto.randomBytes(64).toString('hex');
+  }
 })();
 const CLIENT_ID = process.env.CLIENT_ID || '1538556104924070050';
 const CLIENT_SECRET = process.env.CLIENT_SECRET || process.env.DISCORD_CLIENT_SECRET || '';
