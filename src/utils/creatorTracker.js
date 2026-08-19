@@ -5,12 +5,17 @@ const { createEmbed, COLORS } = require('./embedBuilder');
 const { isSafePublicUrl } = require('./security');
 
 /**
- * Faz requisição HTTP/HTTPS leve com proteção Anti-SSRF e limite de redirecionamento
+ * Faz requisição HTTP/HTTPS leve com proteção Anti-SSRF, orçamento de tempo global e limite de payload
  */
-function fetchText(url, maxRedirects = 3) {
+function fetchText(url, maxRedirects = 3, deadline = Date.now() + 7000) {
   return new Promise((resolve, reject) => {
     if (!isSafePublicUrl(url)) {
       return reject(new Error('[SSRF GUARD] URL bloqueada por segurança.'));
+    }
+
+    const remainingTimeout = deadline - Date.now();
+    if (remainingTimeout <= 0) {
+      return reject(new Error('[TIMEOUT] Limite de tempo de requisição excedido.'));
     }
 
     const parsed = new URL(url);
@@ -20,7 +25,7 @@ function fetchText(url, maxRedirects = 3) {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
         'Accept': '*/*'
       },
-      timeout: 8000
+      timeout: remainingTimeout
     }, (res) => {
       if (res.statusCode >= 300 && res.statusCode < 400 && res.headers.location) {
         if (maxRedirects <= 0) {
@@ -28,13 +33,25 @@ function fetchText(url, maxRedirects = 3) {
         }
         try {
           const nextUrl = new URL(res.headers.location, url).toString();
-          return resolve(fetchText(nextUrl, maxRedirects - 1));
+          return resolve(fetchText(nextUrl, maxRedirects - 1, deadline));
         } catch (e) {
           return reject(e);
         }
       }
+
       let data = '';
-      res.on('data', chunk => data += chunk);
+      let totalBytes = 0;
+      const MAX_BYTES = 512 * 1024; // 512 KB máx para respostas de feeds/APIs
+
+      res.on('data', chunk => {
+        totalBytes += chunk.length;
+        if (totalBytes > MAX_BYTES) {
+          req.destroy();
+          return reject(new Error('[PAYLOAD TOO LARGE] Resposta excedeu 512KB.'));
+        }
+        data += chunk;
+      });
+
       res.on('end', () => resolve(data));
     });
 

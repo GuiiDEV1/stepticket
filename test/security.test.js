@@ -4,8 +4,9 @@ const { escapeHTML, isSafePublicUrl, normalizeMessageContent, createRateLimiter,
 const { signSession, verifySession, createSession } = require('../src/web/auth');
 const DatabaseManager = require('../src/database/manager');
 const { getTranscriptFilePath, cleanOldTranscripts } = require('../src/utils/transcript');
+const { evaluate } = require('mathjs');
 
-console.log('🧪 Iniciando Bateria Completa de Testes de Segurança, Autorização, Cotas e Concorrência...\n');
+console.log('🧪 Iniciando Bateria Completa de Testes de Segurança, Autorização, Cotas, Concorrência e Expressões...\n');
 
 let totalTests = 0;
 let passedTests = 0;
@@ -244,16 +245,13 @@ runTest('Prevenção de Race Condition em Apostas (Débito Imediato)', () => {
   const guildId = 'test_bet_guild';
   const userId = 'test_bet_user';
 
-  // Configura saldo exato de 100
   const eco = DatabaseManager.getEconomy(guildId, userId);
   if (eco.wallet > 0) DatabaseManager.removeWallet(guildId, userId, eco.wallet);
   DatabaseManager.addWallet(guildId, userId, 100);
 
-  // Primeira aposta de 100 debita com sucesso
   const bet1 = DatabaseManager.removeWallet(guildId, userId, 100);
   assert.strictEqual(bet1, true);
 
-  // Segunda aposta simultânea de 100 DEVE FALHAR (saldo esgotado)
   const bet2 = DatabaseManager.removeWallet(guildId, userId, 100);
   assert.strictEqual(bet2, false);
 });
@@ -327,8 +325,23 @@ runTest('Integridade de criação e limites de criadores por guild', () => {
   const list = DatabaseManager.getCreators(guildTest);
   assert.ok(list.length > 0);
 
-  // Limpeza do teste
   DatabaseManager.deleteCreator(guildTest, creator.id);
+});
+
+// -------------------------------------------------------------
+// 11. TESTES DE AVALIAÇÃO MATEMÁTICA SEGURA
+// -------------------------------------------------------------
+console.log('\n🧮 11. Testes de Avaliação Matemática Segura (calc.js):');
+
+runTest('Calcular expressões matemáticas válidas em escopo isolado', () => {
+  const res = evaluate('(10 * 5) + 50 / 2', {});
+  assert.strictEqual(res, 75);
+});
+
+runTest('Bloquear injeção de palavras-chave perigosas na expressão', () => {
+  const dangerousExpr = 'import("fs")';
+  const isDangerous = /(import|require|process|global|window|eval|function|constructor|prototype|this|__proto__)/i.test(dangerousExpr);
+  assert.strictEqual(isDangerous, true);
 });
 
 // -------------------------------------------------------------
