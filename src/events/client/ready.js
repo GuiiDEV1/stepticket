@@ -2,6 +2,8 @@ const { ActivityType, Events } = require('discord.js');
 const { registerCommands } = require('../../handlers/commandHandler.js');
 const DatabaseManager = require('../../database/manager.js');
 const { createEmbed, COLORS } = require('../../utils/embedBuilder.js');
+const { checkRobloxUpdates } = require('../../utils/robloxTracker.js');
+const { checkYouTubeNotifications } = require('../../utils/youtubeTracker.js');
 
 module.exports = {
   name: Events.ClientReady,
@@ -16,16 +18,16 @@ module.exports = {
     // Definir presença inicial
     try {
       client.user.setPresence({
-        activities: [{ name: '/help | Suporte & Moderação', type: ActivityType.Playing }],
+        activities: [{ name: '/help | Luqqzstrap & Tickets', type: ActivityType.Playing }],
         status: 'online'
       });
     } catch (err) {}
 
     // Alternância de status a cada 15 segundos
     const activities = [
-      { name: '/help | Atendimento & Moderação', type: ActivityType.Playing },
+      { name: '/help | Luqqzstrap & FastFlags', type: ActivityType.Playing },
       { name: `${client.guilds.cache.size} servidores!`, type: ActivityType.Watching },
-      { name: 'Tickets e Segurança', type: ActivityType.Listening }
+      { name: 'Tickets e Economia', type: ActivityType.Listening }
     ];
 
     let currentActivity = 0;
@@ -41,9 +43,26 @@ module.exports = {
       console.error('Erro ao registrar comandos na API:', err);
     });
 
-    // Loop do Sistema de Sorteios (Verifica a cada 15 segundos)
+    // 1. Loop de Sorteios (Giveaways - a cada 15 segundos)
     setInterval(() => {
       checkGiveaways(client);
+    }, 15000);
+
+    // 2. Loop do Rastreador de Atualizações do Roblox (a cada 2 minutos)
+    setInterval(() => {
+      checkRobloxUpdates(client);
+    }, 120000);
+    // Executa uma checagem inicial após 10 segundos
+    setTimeout(() => {
+      checkRobloxUpdates(client);
+    }, 10000);
+
+    // 3. Loop de Notificações do YouTube (a cada 3 minutos)
+    setInterval(() => {
+      checkYouTubeNotifications(client);
+    }, 180000);
+    setTimeout(() => {
+      checkYouTubeNotifications(client);
     }, 15000);
   }
 };

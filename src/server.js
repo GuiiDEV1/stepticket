@@ -20,11 +20,23 @@ function startServer(client) {
     res.status(200).send('pong');
   });
 
-  const server = app.listen(PORT, () => {
-    console.log(`🌐 Servidor Keep-Alive rodando com sucesso na porta ${PORT}`);
-  });
+  try {
+    const server = app.listen(PORT, () => {
+      console.log(`🌐 Servidor Keep-Alive rodando com sucesso na porta ${PORT}`);
+    });
 
-  return server;
+    server.on('error', (err) => {
+      if (err.code === 'EADDRINUSE') {
+        console.warn(`[AVISO] Porta ${PORT} em uso. Servidor Keep-Alive continuará em segundo plano.`);
+      } else {
+        console.error('Erro no servidor web Keep-Alive:', err.message);
+      }
+    });
+
+    return server;
+  } catch (err) {
+    console.warn('Servidor web não pôde ser iniciado:', err.message);
+  }
 }
 
 module.exports = {

@@ -148,18 +148,21 @@ function inferExpectedType(flagName) {
 }
 
 /**
- * Limpa, valida e corrige um objeto de FastFlags
+ * Limpa, valida e separa um objeto de FastFlags em válidas e inválidas
  * @param {Object} inputFlags Objeto parsed do ClientAppSettings.json
  * @param {Object} options
- * @param {boolean} [options.strict=false] Se true, remove flags que não estão ativas na lista ao vivo
+ * @param {boolean} [options.strict=false] Se true, considera inválidas flags não ativas na lista ao vivo
  */
 async function cleanAndValidateFFlags(inputFlags, { strict = false } = {}) {
   const live = await fetchRobloxLiveFFlags();
-  const cleanedFlags = {};
+  
+  const flags_validas = {};
+  const flags_invalidas = {};
 
   const stats = {
     totalInput: 0,
     validKept: 0,
+    invalidCount: 0,
     corrected: [],
     removedDeprecated: [],
     removedDangerous: [],
@@ -178,6 +181,7 @@ async function cleanAndValidateFFlags(inputFlags, { strict = false } = {}) {
 
     // 1. Checa se é flag perigosa
     if (DANGEROUS_FLAGS.includes(key)) {
+      flags_invalidas[key] = rawVal;
       stats.removedDangerous.push({ key, reason: 'Flag perigosa conhecida por causar crash ou ban' });
       continue;
     }
@@ -185,14 +189,16 @@ async function cleanAndValidateFFlags(inputFlags, { strict = false } = {}) {
     // 2. Checa o tipo esperado pelo prefixo
     const expectedType = inferExpectedType(key);
     if (expectedType === 'unknown') {
+      flags_invalidas[key] = rawVal;
       stats.removedInvalid.push({ key, reason: 'Prefixo de FastFlag não reconhecido (use FFlag, DFFlag, FInt, DFInt, FString)' });
       continue;
     }
 
-    // 3. Checa existência se modo estrito ou verificação geral
+    // 3. Checa existência no catálogo do Roblox Live ou curated
     const existsLive = live.flagsSet.has(key) || Boolean(CURATED_KNOWN_FLAGS[key]);
-    if (strict && !existsLive) {
-      stats.removedDeprecated.push({ key, reason: 'Não encontrada no catálogo ao vivo de flags ativas do Roblox' });
+    if (!existsLive) {
+      flags_invalidas[key] = rawVal;
+      stats.removedDeprecated.push({ key, reason: 'Flag não encontrada ou descontinuada no catálogo oficial do Roblox' });
       continue;
     }
 
@@ -213,6 +219,7 @@ async function cleanAndValidateFFlags(inputFlags, { strict = false } = {}) {
           wasCorrected = true;
           changeDesc = `Convertido de string "${rawVal}" para boolean false`;
         } else {
+          flags_invalidas[key] = rawVal;
           stats.removedInvalid.push({ key, reason: `Valor booleano inválido: "${rawVal}"` });
           continue;
         }
@@ -221,6 +228,7 @@ async function cleanAndValidateFFlags(inputFlags, { strict = false } = {}) {
         wasCorrected = true;
         changeDesc = `Convertido de número ${rawVal} para boolean ${finalVal}`;
       } else if (typeof rawVal !== 'boolean') {
+        flags_invalidas[key] = rawVal;
         stats.removedInvalid.push({ key, reason: `Tipo incorreto para flag booleana (${typeof rawVal})` });
         continue;
       }
@@ -232,6 +240,7 @@ async function cleanAndValidateFFlags(inputFlags, { strict = false } = {}) {
           wasCorrected = true;
           changeDesc = `Convertido de string "${rawVal}" para número inteiro ${parsed}`;
         } else {
+          flags_invalidas[key] = rawVal;
           stats.removedInvalid.push({ key, reason: `Valor inteiro não-numérico: "${rawVal}"` });
           continue;
         }
@@ -240,6 +249,7 @@ async function cleanAndValidateFFlags(inputFlags, { strict = false } = {}) {
         wasCorrected = true;
         changeDesc = `Convertido de boolean para inteiro ${finalVal}`;
       } else if (typeof rawVal !== 'number' || isNaN(rawVal)) {
+        flags_invalidas[key] = rawVal;
         stats.removedInvalid.push({ key, reason: `Tipo incorreto para flag numérica (${typeof rawVal})` });
         continue;
       }
@@ -251,7 +261,8 @@ async function cleanAndValidateFFlags(inputFlags, { strict = false } = {}) {
       }
     }
 
-    cleanedFlags[key] = finalVal;
+    // Flag 100% válida e funcionando
+    flags_validas[key] = finalVal;
     stats.validKept++;
 
     if (wasCorrected) {
@@ -259,8 +270,12 @@ async function cleanAndValidateFFlags(inputFlags, { strict = false } = {}) {
     }
   }
 
+  stats.invalidCount = Object.keys(flags_invalidas).length;
+
   return {
-    cleanedFlags,
+    flags_validas,
+    flags_invalidas,
+    cleanedFlags: flags_validas,
     stats,
     robloxLiveTotal: live.flagsSet.size,
     lastUpdated: live.lastFetched

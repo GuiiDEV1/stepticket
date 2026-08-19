@@ -2,6 +2,7 @@
 const events = [
   require('../events/client/ready.js'),
   require('../events/client/interactionCreate.js'),
+  require('../events/verification/verificationInteractions.js'),
   require('../events/giveaways/giveawayInteractions.js'),
   require('../events/guild/guildMemberAdd.js'),
   require('../events/guild/guildMemberRemove.js'),

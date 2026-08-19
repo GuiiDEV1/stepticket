@@ -13,7 +13,7 @@ module.exports = {
     .addSubcommand(sub =>
       sub
         .setName('limpar')
-        .setDescription('Analisa, limpa e corrige um arquivo ClientAppSettings.json de FastFlags')
+        .setDescription('Limpa, corrige e entrega um ClientAppSettings.json pronto apenas com flags válidas')
         .addAttachmentOption(opt =>
           opt
             .setName('arquivo')
@@ -37,6 +37,24 @@ module.exports = {
             )
         )
     )
+    // Subcomando: Checar (Envia 2 arquivos: flags_validas.json e flags_invalidas.json)
+    .addSubcommand(sub =>
+      sub
+        .setName('checar')
+        .setDescription('Verifica as flags e envia 2 arquivos .json separados: válidas e inválidas')
+        .addAttachmentOption(opt =>
+          opt
+            .setName('arquivo')
+            .setDescription('Envie o arquivo .json para checagem')
+            .setRequired(false)
+        )
+        .addStringOption(opt =>
+          opt
+            .setName('texto')
+            .setDescription('Ou cole o JSON aqui')
+            .setRequired(false)
+        )
+    )
     // Subcomando: Offsets (imtheo.lol)
     .addSubcommand(sub =>
       sub
@@ -53,24 +71,6 @@ module.exports = {
             .setName('nome')
             .setDescription('Nome da FastFlag (ex: DFIntTaskSchedulerTargetFps)')
             .setRequired(true)
-        )
-    )
-    // Subcomando: Checar
-    .addSubcommand(sub =>
-      sub
-        .setName('checar')
-        .setDescription('Diagnóstico rápido de um arquivo ou texto de FastFlags sem modificação')
-        .addAttachmentOption(opt =>
-          opt
-            .setName('arquivo')
-            .setDescription('Envie o arquivo .json para diagnóstico')
-            .setRequired(false)
-        )
-        .addStringOption(opt =>
-          opt
-            .setName('texto')
-            .setDescription('Ou cole o JSON aqui')
-            .setRequired(false)
         )
     ),
 
@@ -158,7 +158,7 @@ module.exports = {
     }
 
     // =========================================================================
-    // SUBCOMANDO: LIMPAR / CHECAR (PROCESSAMENTO DE ARQUIVO OU TEXTO)
+    // SUBCOMANDOS: LIMPAR E CHECAR
     // =========================================================================
     if (subcommand === 'limpar' || subcommand === 'checar') {
       const fileAttachment = interaction.options.getAttachment('arquivo');
@@ -200,7 +200,6 @@ module.exports = {
       // Parser seguro do JSON
       let parsedFlags = null;
       try {
-        // Remove possíveis comentários e vírgulas extras no final
         const cleanRaw = jsonContent
           .replace(/\/\*[\s\S]*?\*\/|([^:]|^)\/\/.*$/gm, '')
           .replace(/,\s*}/g, '}');
@@ -211,7 +210,7 @@ module.exports = {
         });
       }
 
-      // Executa a limpeza e validação profunda
+      // Executa a análise profunda
       const result = await cleanAndValidateFFlags(parsedFlags, { strict: isStrict });
 
       if (result.error) {
@@ -220,63 +219,84 @@ module.exports = {
         });
       }
 
-      const { stats, cleanedFlags, robloxLiveTotal } = result;
+      const { stats, flags_validas, flags_invalidas, robloxLiveTotal } = result;
 
-      // Montar resumo detalhado
-      const resultEmbed = createEmbed({
-        title: subcommand === 'limpar' ? '🧹 FastFlags Limpas e Otimizadas (Luqqzstrap)' : '🔍 Diagnóstico de FastFlags',
-        description: `Analisei **${stats.totalInput}** FastFlags com base no catálogo oficial do Roblox e bases confiáveis.\n\n` +
-          `**Modo:** \`${isStrict ? 'Rigoroso (Live Only)' : 'Seguro (Recomendado)'}\`\n` +
-          `**Catálogo Atualizado:** \`${robloxLiveTotal} flags ativas no Roblox\``,
+      // =========================================================================
+      // SUBCOMANDO: /flag checar (ENVIA 2 ARQUIVOS JSON PUROS)
+      // =========================================================================
+      if (subcommand === 'checar') {
+        const validBuffer = Buffer.from(JSON.stringify(flags_validas, null, 2), 'utf-8');
+        const invalidBuffer = Buffer.from(JSON.stringify(flags_invalidas, null, 2), 'utf-8');
+
+        const validAttachment = new AttachmentBuilder(validBuffer, { name: 'flags_validas.json' });
+        const invalidAttachment = new AttachmentBuilder(invalidBuffer, { name: 'flags_invalidas.json' });
+
+        const checkEmbed = createEmbed({
+          title: '🔍 Checagem de FastFlags (Luqqzstrap)',
+          description: `Analisei **${stats.totalInput}** flags. Abaixo estão os **2 arquivos .json** no formato padrão de bootstrapper (um apenas com as válidas e outro com as inválidas/não encontradas).`,
+          color: stats.invalidCount > 0 ? COLORS.WARNING : COLORS.SUCCESS,
+          fields: [
+            { name: '🟢 Arquivo 1: `flags_validas.json`', value: `\`${stats.validKept}\` flags ativas que funcionam`, inline: false },
+            { name: '🔴 Arquivo 2: `flags_invalidas.json`', value: `\`${stats.invalidCount}\` flags descontinuadas/não encontradas`, inline: false },
+            { name: '🛠️ Tipos Corrigidos', value: `\`${stats.corrected.length}\` correções automáticas de tipo`, inline: true }
+          ],
+          footerText: `Catálogo oficial da Roblox: ${robloxLiveTotal} flags ativas`
+        });
+
+        if (stats.removedDangerous.length > 0) {
+          checkEmbed.addFields({
+            name: '🚨 Flags Perigosas Detectadas (Risco de Crash/Ban)',
+            value: stats.removedDangerous.map(d => `• \`${d.key}\`: ${d.reason}`).join('\n').slice(0, 1024),
+            inline: false
+          });
+        }
+
+        return interaction.editReply({
+          embeds: [checkEmbed],
+          files: [validAttachment, invalidAttachment]
+        });
+      }
+
+      // =========================================================================
+      // SUBCOMANDO: /flag limpar (ENVIA APENAS O ClientAppSettings.json LIMPO)
+      // =========================================================================
+      const cleanedJsonString = JSON.stringify(flags_validas, null, 2);
+      const attachment = new AttachmentBuilder(Buffer.from(cleanedJsonString, 'utf-8'), {
+        name: 'ClientAppSettings.json'
+      });
+
+      const cleanEmbed = createEmbed({
+        title: '🧹 FastFlags Limpas e Otimizadas (Luqqzstrap)',
+        description: `Todas as **${stats.validKept}** flags válidas foram salvas no arquivo **\`ClientAppSettings.json\`** pronto para uso no seu bootstrapper.`,
         color: stats.removedDangerous.length > 0 ? COLORS.WARNING : COLORS.SUCCESS,
         fields: [
           { name: '✅ Flags Válidas Mantidas', value: `\`${stats.validKept}\` flags`, inline: true },
           { name: '🔧 Tipos Corrigidos', value: `\`${stats.corrected.length}\` correções`, inline: true },
-          { name: '🗑️ Inválidas / Removidas', value: `\`${stats.removedInvalid.length + stats.removedDeprecated.length}\` flags`, inline: true }
+          { name: '🗑️ Inválidas / Removidas', value: `\`${stats.invalidCount}\` flags`, inline: true }
         ],
-        footerText: 'Pronto para uso no Luqqzstrap e Bloxstrap'
+        footerText: 'Pronto para download e uso imediato no Luqqzstrap/Bloxstrap'
       });
 
       if (stats.removedDangerous.length > 0) {
-        resultEmbed.addFields({
-          name: '🚨 Flags Perigosas Removidas (Risco de Crash/Ban)',
+        cleanEmbed.addFields({
+          name: '🚨 Flags Perigosas Removidas',
           value: stats.removedDangerous.map(d => `• \`${d.key}\`: ${d.reason}`).join('\n').slice(0, 1024),
           inline: false
         });
       }
 
       if (stats.corrected.length > 0) {
-        resultEmbed.addFields({
-          name: '🛠️ Exemplos de Correções Automáticas Realizadas',
+        cleanEmbed.addFields({
+          name: '🛠️ Exemplos de Correções Realizadas',
           value: stats.corrected.slice(0, 5).map(c => `• \`${c.key}\`: ${c.change}`).join('\n') + (stats.corrected.length > 5 ? `\n*...e mais ${stats.corrected.length - 5} correções.*` : ''),
           inline: false
         });
       }
 
-      if (stats.removedInvalid.length > 0) {
-        resultEmbed.addFields({
-          name: '⚠️ Flags com Prefixos Inválidos Excluídas',
-          value: stats.removedInvalid.slice(0, 5).map(i => `• \`${i.key}\``).join('\n') + (stats.removedInvalid.length > 5 ? `\n*...e mais ${stats.removedInvalid.length - 5} flags.*` : ''),
-          inline: false
-        });
-      }
-
-      // Se for o comando de limpar, anexa o arquivo ClientAppSettings.json pronto
-      if (subcommand === 'limpar') {
-        const cleanedJsonString = JSON.stringify(cleanedFlags, null, 2);
-        const attachment = new AttachmentBuilder(Buffer.from(cleanedJsonString, 'utf-8'), {
-          name: 'ClientAppSettings.json'
-        });
-
-        return interaction.editReply({
-          embeds: [resultEmbed],
-          files: [attachment]
-        });
-      } else {
-        return interaction.editReply({
-          embeds: [resultEmbed]
-        });
-      }
+      return interaction.editReply({
+        embeds: [cleanEmbed],
+        files: [attachment]
+      });
     }
   }
 };

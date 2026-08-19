@@ -188,7 +188,6 @@ const DatabaseManager = {
     const current = this.getUserLevel(guildId, userId);
     const now = Date.now();
 
-    // Cooldown de 60 segundos anti-spam
     if (now - current.last_message_at < 60000) {
       return { leveledUp: false, currentXP: current.xp, currentLevel: current.level };
     }
@@ -340,6 +339,212 @@ const DatabaseManager = {
     p.votes[userId] = optionIndex;
     saveToDisk();
     return { options: p.options, votes: p.votes };
+  },
+
+  // ===================== ROBLOX TRACKER =====================
+  getRobloxTracker() {
+    if (!store.roblox_tracker) {
+      store.roblox_tracker = { last_version: null, last_upload_guid: null, last_checked_at: 0, channels: [] };
+      saveToDisk();
+    }
+    return store.roblox_tracker;
+  },
+
+  updateRobloxTracker(updates) {
+    store.roblox_tracker = { ...this.getRobloxTracker(), ...updates };
+    saveToDisk();
+  },
+
+  addRobloxTrackerChannel(guildId, channelId, pingRoleId = null) {
+    const tracker = this.getRobloxTracker();
+    const existingIndex = tracker.channels.findIndex(c => c.guild_id === guildId);
+    if (existingIndex > -1) {
+      tracker.channels[existingIndex] = { guild_id: guildId, channel_id: channelId, ping_role_id: pingRoleId };
+    } else {
+      tracker.channels.push({ guild_id: guildId, channel_id: channelId, ping_role_id: pingRoleId });
+    }
+    saveToDisk();
+  },
+
+  removeRobloxTrackerChannel(guildId) {
+    const tracker = this.getRobloxTracker();
+    tracker.channels = tracker.channels.filter(c => c.guild_id !== guildId);
+    saveToDisk();
+  },
+
+  // ===================== VERIFICAÇÃO (CAPTCHA & BOTÃO) =====================
+  getVerification(guildId) {
+    return store.verification[guildId] || null;
+  },
+
+  setVerification(guildId, config) {
+    store.verification[guildId] = {
+      guild_id: guildId,
+      channel_id: config.channel_id,
+      role_id: config.role_id,
+      type: config.type || 'captcha', // 'captcha' ou 'button'
+      enabled: config.enabled !== undefined ? config.enabled : 1
+    };
+    saveToDisk();
+  },
+
+  // ===================== ECONOMIA =====================
+  getEconomy(guildId, userId) {
+    const key = `${guildId}_${userId}`;
+    if (!store.economy[key]) {
+      store.economy[key] = {
+        guild_id: guildId,
+        user_id: userId,
+        wallet: 0,
+        bank: 0,
+        last_daily: 0,
+        last_work: 0
+      };
+      saveToDisk();
+    }
+    return store.economy[key];
+  },
+
+  addWallet(guildId, userId, amount) {
+    const eco = this.getEconomy(guildId, userId);
+    eco.wallet += amount;
+    saveToDisk();
+    return eco.wallet;
+  },
+
+  removeWallet(guildId, userId, amount) {
+    const eco = this.getEconomy(guildId, userId);
+    if (eco.wallet < amount) return false;
+    eco.wallet -= amount;
+    saveToDisk();
+    return true;
+  },
+
+  depositBank(guildId, userId, amount) {
+    const eco = this.getEconomy(guildId, userId);
+    const depositAmount = amount === 'all' ? eco.wallet : parseInt(amount, 10);
+    if (isNaN(depositAmount) || depositAmount <= 0 || eco.wallet < depositAmount) return false;
+
+    eco.wallet -= depositAmount;
+    eco.bank += depositAmount;
+    saveToDisk();
+    return { wallet: eco.wallet, bank: eco.bank, amount: depositAmount };
+  },
+
+  withdrawBank(guildId, userId, amount) {
+    const eco = this.getEconomy(guildId, userId);
+    const withdrawAmount = amount === 'all' ? eco.bank : parseInt(amount, 10);
+    if (isNaN(withdrawAmount) || withdrawAmount <= 0 || eco.bank < withdrawAmount) return false;
+
+    eco.bank -= withdrawAmount;
+    eco.wallet += withdrawAmount;
+    saveToDisk();
+    return { wallet: eco.wallet, bank: eco.bank, amount: withdrawAmount };
+  },
+
+  transferMoney(guildId, fromUserId, toUserId, amount) {
+    const from = this.getEconomy(guildId, fromUserId);
+    const to = this.getEconomy(guildId, toUserId);
+    const transferAmount = parseInt(amount, 10);
+
+    if (isNaN(transferAmount) || transferAmount <= 0 || from.wallet < transferAmount) return false;
+
+    from.wallet -= transferAmount;
+    to.wallet += transferAmount;
+    saveToDisk();
+    return true;
+  },
+
+  setLastDaily(guildId, userId, timestamp = Date.now()) {
+    const eco = this.getEconomy(guildId, userId);
+    eco.last_daily = timestamp;
+    saveToDisk();
+  },
+
+  setLastWork(guildId, userId, timestamp = Date.now()) {
+    const eco = this.getEconomy(guildId, userId);
+    eco.last_work = timestamp;
+    saveToDisk();
+  },
+
+  // ===================== LOJA DA ECONOMIA =====================
+  getShopItems(guildId) {
+    if (!store.economy_shop) store.economy_shop = [];
+    return store.economy_shop.filter(i => i.guild_id === guildId);
+  },
+
+  addShopItem({ guildId, roleId, name, price, description }) {
+    if (!store.economy_shop) store.economy_shop = [];
+    const newId = (store.economy_shop.length > 0 ? Math.max(...store.economy_shop.map(i => i.id)) : 0) + 1;
+    const item = {
+      id: newId,
+      guild_id: guildId,
+      role_id: roleId,
+      name,
+      price: parseInt(price, 10),
+      description: description || ''
+    };
+    store.economy_shop.push(item);
+    saveToDisk();
+    return item;
+  },
+
+  removeShopItem(id, guildId) {
+    if (!store.economy_shop) return false;
+    const initialLen = store.economy_shop.length;
+    store.economy_shop = store.economy_shop.filter(i => !(i.id === id && i.guild_id === guildId));
+    const removed = initialLen - store.economy_shop.length > 0;
+    if (removed) saveToDisk();
+    return removed;
+  },
+
+  getShopItem(id, guildId) {
+    if (!store.economy_shop) return null;
+    return store.economy_shop.find(i => i.id === id && i.guild_id === guildId) || null;
+  },
+
+  // ===================== YOUTUBE NOTIFICATIONS =====================
+  getYouTubeNotifications() {
+    if (!store.youtube_notifications) store.youtube_notifications = [];
+    return store.youtube_notifications;
+  },
+
+  addYouTubeNotification({ guildId, channelId, youtubeChannelId, customMessage }) {
+    if (!store.youtube_notifications) store.youtube_notifications = [];
+    const existingIndex = store.youtube_notifications.findIndex(n => n.guild_id === guildId && n.youtube_channel_id === youtubeChannelId);
+    
+    if (existingIndex > -1) {
+      store.youtube_notifications[existingIndex] = {
+        guild_id: guildId,
+        channel_id: channelId,
+        youtube_channel_id: youtubeChannelId,
+        last_video_id: store.youtube_notifications[existingIndex].last_video_id || null,
+        custom_message: customMessage || null
+      };
+    } else {
+      store.youtube_notifications.push({
+        guild_id: guildId,
+        channel_id: channelId,
+        youtube_channel_id: youtubeChannelId,
+        last_video_id: null,
+        custom_message: customMessage || null
+      });
+    }
+    saveToDisk();
+  },
+
+  updateYouTubeLastVideo(guildId, youtubeChannelId, videoId) {
+    const item = store.youtube_notifications.find(n => n.guild_id === guildId && n.youtube_channel_id === youtubeChannelId);
+    if (item) {
+      item.last_video_id = videoId;
+      saveToDisk();
+    }
+  },
+
+  removeYouTubeNotification(guildId, youtubeChannelId) {
+    if (!store.youtube_notifications) return;
+    store.youtube_notifications = store.youtube_notifications.filter(n => !(n.guild_id === guildId && n.youtube_channel_id === youtubeChannelId));
+    saveToDisk();
   }
 };
 

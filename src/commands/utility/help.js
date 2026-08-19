@@ -14,20 +14,20 @@ module.exports = {
 
   async execute(interaction, client) {
     const mainEmbed = createEmbed({
-      title: '📚 Central de Ajuda - StepTicket Bot',
-      description: 'Olá! Sou um bot completo para o seu servidor, equipado com sistema avançado de **Tickets, Moderação com Warns, Auto-Moderação, Sorteios, Sugestões, Cargos por Botão, Níveis/XP, Utilitários e Gerenciador de FastFlags (Luqqzstrap)**!\n\nSelecione uma categoria no menu abaixo para conferir os comandos disponíveis e como utilizá-los.',
+      title: '📚 Central de Ajuda - StepTicket & Luqqzstrap Bot',
+      description: 'Olá! Sou um bot completo para o seu servidor, equipado com sistema avançado de **Tickets, Luqqzstrap & FastFlags, Rastreador do Roblox, Verificação por Captcha, Economia Completa, Moderação, Sorteios, Notificador de YouTube e Utilitários**!\n\nSelecione uma categoria no menu abaixo para conferir os comandos disponíveis e como utilizá-los.',
       color: COLORS.PRIMARY,
       thumbnail: client.user.displayAvatarURL({ dynamic: true }),
       fields: [
-        { name: '🎫 Tickets', value: 'Painel interativo, transcrições HTML, claim e fechamento.', inline: true },
-        { name: '🛡️ Moderação', value: 'Ban, kick, timeout, clear, warn, lock, nuke, cargos.', inline: true },
-        { name: '🤖 AutoMod', value: 'Anti-link, anti-invite, anti-spam e anti-mass-mention.', inline: true },
-        { name: '🎉 Sorteios', value: 'Criação de sorteios com timer e botão interativo.', inline: true },
-        { name: '💡 Sugestões', value: 'Votações com apoio/discordo e moderação staff.', inline: true },
-        { name: '⭐ Níveis & XP', value: 'Sistema de ganho de XP no chat e rankings.', inline: true },
-        { name: '⚡ FastFlags (Luqqzstrap)', value: 'Limpar, validar flags e consultar offsets imtheo.lol.', inline: true },
-        { name: '🛠️ Utilitários', value: 'Ping, userinfo, serverinfo, avatar, calc, enquete.', inline: true },
-        { name: '⚙️ Configuração', value: 'Comandos `/setup` para inicializar os módulos.', inline: true }
+        { name: '⚡ FastFlags & Luqqzstrap', value: 'Limpar e validar flags, offsets imtheo.lol.', inline: true },
+        { name: '🌐 Roblox & Versões', value: 'Rastreador de deploy e versões LIVE da Roblox.', inline: true },
+        { name: '🔐 Verificação Anti-Bot', value: 'Painel com Captcha visual e botão seguro.', inline: true },
+        { name: '💰 Economia & Cassino', value: 'Daily, work, carteira, apostas e loja de cargos.', inline: true },
+        { name: '🎫 Tickets & Transcrições', value: 'Atendimento privado com logs em HTML.', inline: true },
+        { name: '🛡️ Moderação & Warns', value: 'Ban, kick, timeout, clear, warn, lock, nuke.', inline: true },
+        { name: '🤖 AutoMod', value: 'Anti-link, anti-invite, anti-spam em tempo real.', inline: true },
+        { name: '🎉 Sorteios & Sugestões', value: 'Giveaways interativos e votações da staff.', inline: true },
+        { name: '⚙️ Configuração (/setup)', value: 'Comandos administrativos para inicializar tudo.', inline: true }
       ],
       footerText: 'Selecione uma categoria abaixo para ver os detalhes'
     });
@@ -44,12 +44,27 @@ module.exports = {
             .setValue('help_home'),
           new StringSelectMenuOptionBuilder()
             .setLabel('FastFlags & Luqqzstrap')
-            .setDescription('/flag limpar, offsets, info, checar')
+            .setDescription('/flag limpar, checar, offsets, info')
             .setEmoji('⚡')
             .setValue('help_flags'),
           new StringSelectMenuOptionBuilder()
+            .setLabel('Roblox & Atualizações')
+            .setDescription('/roblox versao, status e alertas automáticos')
+            .setEmoji('🌐')
+            .setValue('help_roblox'),
+          new StringSelectMenuOptionBuilder()
+            .setLabel('Economia & Minijogos')
+            .setDescription('/daily, /work, /carteira, /apostar, /loja')
+            .setEmoji('💰')
+            .setValue('help_economy'),
+          new StringSelectMenuOptionBuilder()
+            .setLabel('Verificação & Segurança')
+            .setDescription('Captcha visual Canvas e Anti-Bot')
+            .setEmoji('🔐')
+            .setValue('help_verify'),
+          new StringSelectMenuOptionBuilder()
             .setLabel('Tickets & Suporte')
-            .setDescription('Comandos de atendimento e tickets')
+            .setDescription('Atendimento e transcrições HTML')
             .setEmoji('🎫')
             .setValue('help_tickets'),
           new StringSelectMenuOptionBuilder()
@@ -63,28 +78,18 @@ module.exports = {
             .setEmoji('🤖')
             .setValue('help_automod'),
           new StringSelectMenuOptionBuilder()
-            .setLabel('Sorteios (Giveaways)')
-            .setDescription('Criação e gerenciamento de sorteios')
+            .setLabel('Sorteios & Comunidade')
+            .setDescription('Giveaways, sugestões e enquetes')
             .setEmoji('🎉')
-            .setValue('help_giveaway'),
-          new StringSelectMenuOptionBuilder()
-            .setLabel('Sugestões & Enquetes')
-            .setDescription('Sistema de sugestões e enquetes')
-            .setEmoji('💡')
             .setValue('help_community'),
           new StringSelectMenuOptionBuilder()
             .setLabel('Níveis & Ranking (XP)')
-            .setDescription('Rank e Leaderboard do servidor')
+            .setDescription('Rank em Canvas e Leaderboard')
             .setEmoji('⭐')
             .setValue('help_level'),
           new StringSelectMenuOptionBuilder()
-            .setLabel('Utilitários & Informações')
-            .setDescription('Userinfo, serverinfo, botinfo, calc')
-            .setEmoji('🛠️')
-            .setValue('help_utils'),
-          new StringSelectMenuOptionBuilder()
             .setLabel('Configuração (/setup)')
-            .setDescription('Painéis e inicialização de módulos')
+            .setDescription('Painéis, YouTube, Loja e Alertas')
             .setEmoji('⚙️')
             .setValue('help_setup')
         )
@@ -116,12 +121,45 @@ module.exports = {
         embedToEdit = createEmbed({
           title: '⚡ Módulo FastFlags & Luqqzstrap (/flag)',
           description: 'Gerenciador inteligente de FastFlags para Roblox e Luqqzstrap/Bloxstrap.\n\n' +
-            '• `/flag limpar [arquivo] [texto] [modo]`: Analisa seu arquivo `ClientAppSettings.json`, remove flags perigosas/crash, corrige tipos (ex: `"true"` para `true`) e entrega o `.json` 100% limpo e otimizado para download.\n' +
-            '• `/flag offsets`: Consulta os offsets de memória mais recentes diretamente do `offsets.imtheo.lol` (versão do Roblox, total de offsets).\n' +
-            '• `/flag info <nome>`: Consulta o status de uma flag específica, tipo esperado e valor padrão no catálogo oficial do Roblox.\n' +
-            '• `/flag checar [arquivo] [texto]`: Diagnóstico de flags sem gerar arquivo modificado.\n\n' +
-            '⏱️ *Possui cooldown de segurança de 10 segundos por usuário.*',
+            '• `/flag limpar [arquivo] [texto] [modo]`: Limpa e entrega o arquivo `ClientAppSettings.json` 100% otimizado.\n' +
+            '• `/flag checar [arquivo] [texto]`: Analisa as flags e envia 2 arquivos .json separados (`flags_validas.json` e `flags_invalidas.json`).\n' +
+            '• `/flag offsets`: Consulta os offsets de memória mais recentes diretamente do `offsets.imtheo.lol`.\n' +
+            '• `/flag info <nome>`: Consulta o status e tipo esperado de uma flag específica.',
           color: COLORS.INFO
+        });
+      } else if (val === 'help_roblox') {
+        embedToEdit = createEmbed({
+          title: '🌐 Módulo Roblox Tracker & Deploys',
+          description: 'Acompanhe em tempo real todas as versões oficiais da Roblox.\n\n' +
+            '• `/roblox versao`: Mostra a versão ativa no canal LIVE, hash de upload e links de download direto.\n' +
+            '• `/roblox status`: Status dos serviços da Roblox.\n' +
+            '• `/setup roblox-tracker <canal> [cargo_ping]`: Configura notificações automáticas no canal assim que a Roblox lançar um novo deploy!',
+          color: COLORS.PRIMARY
+        });
+      } else if (val === 'help_economy') {
+        embedToEdit = createEmbed({
+          title: '💰 Módulo de Economia & Minijogos',
+          description: 'Sistema completo de moedas virtuais, trabalho e apostas no chat.\n\n' +
+            '• `/daily`: Resgata seu bônus diário (500 a 1.500 Coins).\n' +
+            '• `/work`: Trabalha a cada 1 hora para receber seu salário.\n' +
+            '• `/carteira [usuario]`: Exibe seu saldo na carteira, no banco e patrimônio total.\n' +
+            '• `/depositar <quantidade|tudo>`: Guarda moedas no banco com segurança.\n' +
+            '• `/sacar <quantidade|tudo>`: Retira moedas do banco para a carteira.\n' +
+            '• `/pagar <usuario> <quantidade>`: Transfere Coins para outro membro.\n' +
+            '• `/apostar <quantidade>`: Minijogo de roleta/cassino com multiplicadores (2x e jackpot 3x).\n' +
+            '• `/loja ver`: Exibe os cargos disponíveis para compra com Coins.\n' +
+            '• `/loja comprar <id_item>`: Compra um cargo da loja automaticamente.',
+          color: COLORS.SUCCESS
+        });
+      } else if (val === 'help_verify') {
+        embedToEdit = createEmbed({
+          title: '🔐 Módulo de Verificação de Segurança (Anti-Bot)',
+          description: 'Proteja seu servidor contra bots e raids com verificação interativa.\n\n' +
+            '• `/setup verify <canal> <cargo_membro> [tipo]`: Envia o painel oficial de verificação.\n' +
+            '  - **Tipo Captcha:** Gera dinamicamente uma imagem distorcida de 6 caracteres via Canvas.\n' +
+            '  - **Tipo Botão:** Verificação rápida com 1 clique.\n\n' +
+            '*Ao concluir, o membro recebe o cargo configurado e o log é registrado automaticamente.*',
+          color: COLORS.WARNING
         });
       } else if (val === 'help_tickets') {
         embedToEdit = createEmbed({
@@ -167,23 +205,15 @@ module.exports = {
             '*Observação: Membros com permissão de Administrador ou Gerenciar Mensagens são imunes automaticamente.*',
           color: COLORS.SUCCESS
         });
-      } else if (val === 'help_giveaway') {
-        embedToEdit = createEmbed({
-          title: '🎉 Módulo de Sorteios (Giveaways)',
-          description: 'Crie e gerencie sorteios profissionais para a sua comunidade.\n\n' +
-            '• `/giveaway start <duracao> <ganhadores> <premio> [canal]`: Inicia sorteio com botão interativo 🎉 e timer.\n' +
-            '• `/giveaway end <id_mensagem>`: Encerra o sorteio antecipadamente.\n' +
-            '• `/giveaway reroll <id_mensagem>`: Sorteia novos vencedores para um sorteio finalizado.',
-          color: COLORS.GIVEAWAY
-        });
       } else if (val === 'help_community') {
         embedToEdit = createEmbed({
-          title: '💡 Sugestões & Enquetes',
-          description: 'Engaje sua comunidade com votações e enquetes dinâmicas.\n\n' +
-            '• `/sugestao <conteudo>`: Publica uma sugestão no canal oficial com botões 👍/👎 e aprovação da Staff.\n' +
-            '• `/setup sugestao <canal>`: Define o canal oficial de sugestões.\n' +
-            '• `/enquete <pergunta> <op1> <op2> ...`: Cria votações com barra percentual em tempo real.',
-          color: COLORS.INFO
+          title: '🎉 Sorteios, Sugestões & Enquetes',
+          description: 'Recursos dinâmicos para a sua comunidade.\n\n' +
+            '• `/giveaway start <duracao> <ganhadores> <premio>`: Inicia sorteio com botão interativo 🎉 e timer.\n' +
+            '• `/giveaway end <id>` / `/giveaway reroll <id>`: Gerencia sorteios.\n' +
+            '• `/sugestao <conteudo>`: Envia sugestão com botões 👍/👎 e modal para a Staff.\n' +
+            '• `/enquete <pergunta> <opcoes...>`: Enquete com barra gráfica de porcentagem.',
+          color: COLORS.GIVEAWAY
         });
       } else if (val === 'help_level') {
         embedToEdit = createEmbed({
@@ -193,29 +223,16 @@ module.exports = {
             '• `/leaderboard`: Mostra o Top 10 membros com mais XP no servidor.',
           color: COLORS.PRIMARY
         });
-      } else if (val === 'help_utils') {
-        embedToEdit = createEmbed({
-          title: '🛠️ Módulo de Utilitários',
-          description: 'Comandos gerais de informação e ferramentas.\n\n' +
-            '• `/calc <expressao>`: Calculadora matemática rápida e segura.\n' +
-            '• `/userinfo [usuario]`: Informações detalhadas sobre uma conta.\n' +
-            '• `/serverinfo`: Estatísticas e dados do servidor.\n' +
-            '• `/botinfo`: Uptime, consumo de memória RAM e latência do bot.\n' +
-            '• `/avatar [usuario]`: Exibe a foto de perfil com link de download.\n' +
-            '• `/banner [usuario]`: Exibe o banner do usuário em alta definição.\n' +
-            '• `/ping`: Mostra a latência do bot e da conexão WebSocket.',
-          color: COLORS.INFO
-        });
       } else if (val === 'help_setup') {
         embedToEdit = createEmbed({
           title: '⚙️ Módulo de Configuração (/setup)',
-          description: 'Painel administrativo para inicializar os sistemas do bot.\n\n' +
-            '• `/setup ticket`: Configura e envia o painel de tickets.\n' +
-            '• `/setup logs`: Define o canal de registros de auditoria.\n' +
-            '• `/setup welcome`: Configura canal e mensagem de boas-vindas.\n' +
-            '• `/setup autorole`: Configura cargo automático para membros e bots.\n' +
-            '• `/setup sugestao`: Define canal oficial de sugestões.\n' +
-            '• `/setup cargos-botao`: Cria painel interativo de Reaction Roles.',
+          description: 'Comandos administrativos para configurar o servidor.\n\n' +
+            '• `/setup ticket`: Painel interativo de atendimento.\n' +
+            '• `/setup verify`: Painel de verificação Anti-Bot (Captcha ou Botão).\n' +
+            '• `/setup roblox-tracker`: Alertas automáticos de novas versões do Roblox.\n' +
+            '• `/setup youtube`: Notificações automáticas de vídeos novos no YouTube.\n' +
+            '• `/setup loja add|remove`: Gerencia os cargos à venda na economia.\n' +
+            '• `/setup logs` / `/setup welcome` / `/setup sugestao`: Canais oficiais.',
           color: COLORS.WARNING
         });
       }

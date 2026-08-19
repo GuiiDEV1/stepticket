@@ -22,7 +22,18 @@ const defaultSchema = {
   levels: {},
   reaction_roles: [],
   suggestions: {},
-  polls: {}
+  polls: {},
+  // Novos módulos
+  roblox_tracker: {
+    last_version: null,
+    last_upload_guid: null,
+    last_checked_at: 0,
+    channels: [] // { guild_id, channel_id, ping_role_id }
+  },
+  verification: {}, // { [guild_id]: { channel_id, role_id, type: 'captcha'|'button', enabled: 1 } }
+  economy: {}, // { [`${guild_id}_${user_id}`]: { guild_id, user_id, wallet, bank, last_daily, last_work } }
+  economy_shop: [], // [ { id, guild_id, role_id, name, price, description } ]
+  youtube_notifications: [] // [ { guild_id, channel_id, youtube_channel_id, last_video_id, custom_message } ]
 };
 
 let store = { ...defaultSchema };

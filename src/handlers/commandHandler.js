@@ -10,6 +10,16 @@ const commandsList = [
   require('../commands/fun_level/rank.js'),
   require('../commands/fun_level/leaderboard.js'),
 
+  // Economia & Minijogos
+  require('../commands/economy/daily.js'),
+  require('../commands/economy/work.js'),
+  require('../commands/economy/carteira.js'),
+  require('../commands/economy/depositar.js'),
+  require('../commands/economy/sacar.js'),
+  require('../commands/economy/pagar.js'),
+  require('../commands/economy/apostar.js'),
+  require('../commands/economy/loja.js'),
+
   // Giveaways
   require('../commands/giveaways/giveaway.js'),
 
@@ -36,8 +46,11 @@ const commandsList = [
   // Tickets
   require('../commands/tickets/ticket.js'),
 
-  // Utility & Luqqzstrap / FastFlags
+  // Roblox & Luqqzstrap FastFlags
+  require('../commands/roblox/roblox.js'),
   require('../commands/utility/flag.js'),
+
+  // Utility
   require('../commands/utility/avatar.js'),
   require('../commands/utility/banner.js'),
   require('../commands/utility/botinfo.js'),
