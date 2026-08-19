@@ -44,7 +44,7 @@ function startServer(client) {
           return [k, decodeURIComponent(v.join('='))];
         })
       );
-      const session = verifySession(cookies.rikeozinho_session || cookies.stepticket_session);
+      const session = verifySession(cookies.noozy_session || cookies.rikeozinho_session || cookies.stepticket_session);
       if (session) {
         return res.redirect('/dashboard');
       }
@@ -58,7 +58,7 @@ function startServer(client) {
     // Gera um token de estado OAuth2 criptograficamente seguro para prevenir ataques de CSRF
     const oauthState = crypto.randomBytes(24).toString('hex');
     const secureCookieFlag = isHttps ? '; Secure' : '';
-    res.setHeader('Set-Cookie', `rikeozinho_oauth_state=${oauthState}; Path=/; HttpOnly; SameSite=Lax; Max-Age=600${secureCookieFlag}`);
+    res.setHeader('Set-Cookie', `noozy_oauth_state=${oauthState}; Path=/; HttpOnly; SameSite=Lax; Max-Age=600${secureCookieFlag}`);
 
     const authUrl = `https://discord.com/oauth2/authorize?client_id=${CLIENT_ID}&response_type=code&scope=identify+guilds&state=${oauthState}&redirect_uri=${encodeURIComponent(redirectUri)}`;
     res.redirect(authUrl);
@@ -79,7 +79,7 @@ function startServer(client) {
       })
     );
 
-    const storedState = cookies.rikeozinho_oauth_state;
+    const storedState = cookies.noozy_oauth_state || cookies.rikeozinho_oauth_state;
     if (!state || !storedState || state !== storedState) {
       console.warn('[SEGURANÇA] Tentativa de login rejeitada: State Token OAuth2 inválido ou ausente.');
       return res.redirect('/?error=invalid_state');
@@ -102,8 +102,8 @@ function startServer(client) {
       const secureCookieFlag = isHttps ? '; Secure' : '';
       // Limpa o cookie de state e define a sessão autenticada
       res.setHeader('Set-Cookie', [
-        `rikeozinho_session=${signedCookie}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${60 * 60 * 24 * 7}${secureCookieFlag}`,
-        `rikeozinho_oauth_state=; Path=/; HttpOnly; SameSite=Lax; Max-Age=0`
+        `noozy_session=${signedCookie}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${60 * 60 * 24 * 7}${secureCookieFlag}`,
+        `noozy_oauth_state=; Path=/; HttpOnly; SameSite=Lax; Max-Age=0`
       ]);
       return res.redirect('/dashboard');
     } catch (err) {
@@ -121,7 +121,7 @@ function startServer(client) {
           return [k, decodeURIComponent(v.join('='))];
         })
       );
-      const signedCookie = cookies.rikeozinho_session || cookies.stepticket_session;
+      const signedCookie = cookies.noozy_session || cookies.rikeozinho_session || cookies.stepticket_session;
       if (signedCookie) {
         const [sessionId] = signedCookie.split('.');
         if (sessionId) {
@@ -130,7 +130,7 @@ function startServer(client) {
       }
     }
 
-    res.setHeader('Set-Cookie', 'rikeozinho_session=; Path=/; HttpOnly; SameSite=Lax; Max-Age=0');
+    res.setHeader('Set-Cookie', 'noozy_session=; Path=/; HttpOnly; SameSite=Lax; Max-Age=0');
     return res.redirect('/');
   });
 
@@ -145,7 +145,7 @@ function startServer(client) {
       })
     );
 
-    const session = verifySession(cookies.rikeozinho_session);
+    const session = verifySession(cookies.noozy_session || cookies.rikeozinho_session);
     if (!session) return res.json({ authenticated: false });
 
     return res.json({
@@ -192,7 +192,7 @@ function startServer(client) {
         <html lang="pt-BR">
         <head>
           <meta charset="UTF-8">
-          <title>Transcrição Não Encontrada - rikeozinho</title>
+          <title>Transcrição Não Encontrada - Noozy</title>
           <link rel="stylesheet" href="/style.css">
         </head>
         <body style="display: flex; align-items: center; justify-content: center; min-height: 100vh; text-align: center;">

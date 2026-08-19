@@ -136,7 +136,7 @@ function requireAuth(req, res, next) {
     })
   );
 
-  const rawCookie = cookies.rikeozinho_session || cookies.stepticket_session;
+  const rawCookie = cookies.noozy_session || cookies.rikeozinho_session || cookies.stepticket_session;
   const session = verifySession(rawCookie);
   if (!session) {
     return res.status(401).json({ error: 'Sessão expirada ou inválida' });

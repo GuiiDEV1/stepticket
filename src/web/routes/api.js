@@ -29,7 +29,7 @@ function createApiRouter(client) {
 
     res.json({
       status: 'online',
-      tag: client.user ? client.user.tag : 'rikeozinho',
+      tag: client.user ? client.user.tag : 'Noozy',
       avatar: client.user ? client.user.displayAvatarURL({ dynamic: true }) : null,
       ping: `${client.ws.ping}ms`,
       uptime: Math.floor(process.uptime()),
@@ -712,7 +712,7 @@ function createApiRouter(client) {
       title: item.title || `📢 Comunicado • ${botGuild.name}`,
       description: item.message,
       color: color,
-      footerText: 'Teste de Aviso Automático • rikeozinho',
+      footerText: 'Teste de Aviso Automático • Noozy',
       thumbnail: botGuild.iconURL({ dynamic: true })
     });
 

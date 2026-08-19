@@ -20,14 +20,14 @@ module.exports = {
     // Definir presença inicial
     try {
       client.user.setPresence({
-        activities: [{ name: '/help | rikeozinho', type: ActivityType.Playing }],
+        activities: [{ name: '/help | noozy.app', type: ActivityType.Playing }],
         status: 'online'
       });
     } catch (err) {}
 
     // Alternância de status a cada 15 segundos
     const activities = [
-      { name: '/help | rikeozinho', type: ActivityType.Playing },
+      { name: '/help | noozy.app', type: ActivityType.Playing },
       { name: `${client.guilds.cache.size} servidores!`, type: ActivityType.Watching },
       { name: 'FastFlags, Tickets & Economia', type: ActivityType.Listening }
     ];

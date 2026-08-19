@@ -14,8 +14,8 @@ module.exports = {
 
   async execute(interaction, client) {
     const mainEmbed = createEmbed({
-      title: '📚 Central de Ajuda • rikeozinho',
-      description: 'Olá! Eu sou o **rikeozinho**, seu bot multifuncional completo para o Discord! Estou equipado com **Tickets, Gerenciador de FastFlags, Rastreador de Atualizações do Roblox, Verificação por Captcha, Economia Completa, Moderação, Sorteios, Notificador de YouTube e Utilitários**!\n\nSelecione uma categoria no menu abaixo para conferir todos os comandos.',
+      title: '📚 Central de Ajuda • Noozy',
+      description: 'Olá! Eu sou o **Noozy**, seu bot multifuncional completo para o Discord! Estou equipado com **Tickets, Gerenciador de FastFlags, Rastreador de Atualizações do Roblox, Verificação por Captcha, Economia Completa, Moderação, Sorteios, Notificador de YouTube/Twitch/Kick e Utilitários**!\n\nSelecione uma categoria no menu abaixo para conferir todos os comandos.',
       color: COLORS.PRIMARY,
       thumbnail: client.user.displayAvatarURL({ dynamic: true }),
       fields: [

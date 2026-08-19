@@ -1,7 +1,7 @@
 @echo off
-title rikeozinho - Discord Bot
+title Noozy - Discord Bot
 echo ========================================================
-echo               INICIANDO RIKEOZINHO BOT
+echo                 INICIANDO NOOZY BOT
 echo ========================================================
 echo.
 node src/index.js

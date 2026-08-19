@@ -1,7 +1,7 @@
 {
-  "name": "stepticket-bot",
+  "name": "noozy-bot",
   "version": "1.0.0",
-  "description": "Bot multifuncional de Discord completo, seguro e otimizado para planos gratuitos de 100MB RAM.",
+  "description": "Bot multifuncional de Discord Noozy (noozy.app) com Dashboard Web, Tickets, FastFlags e Economia.",
   "main": "src/index.js",
   "scripts": {
     "start": "node --max-old-space-size=75 --optimize-for-size src/index.js"
@@ -10,7 +10,8 @@
     "discord",
     "discord-bot",
     "discordjs-v14",
-    "discloud"
+    "discloud",
+    "noozy"
   ],
   "author": "",
   "license": "MIT",

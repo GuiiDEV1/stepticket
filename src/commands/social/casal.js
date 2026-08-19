@@ -41,7 +41,7 @@ module.exports = {
         { name: '📅 Casados Desde', value: `<t:${Math.floor(marriage.married_at / 1000)}:D> (<t:${Math.floor(marriage.married_at / 1000)}:R>)`, inline: false },
         { name: '✨ Nível de Afinidade', value: `💖 **${marriage.affinity || 10} Pontos** de Sintonia`, inline: true }
       ],
-      footerText: 'Amor eterno no Discord • rikeozinho'
+      footerText: 'Amor eterno no Discord • Noozy'
     });
 
     return interaction.reply({ embeds: [embed] });

@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>rikeozinho - Painel Oficial</title>
+  <title>Noozy - Painel Oficial</title>
   <link rel="stylesheet" href="/style.css">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
@@ -13,7 +13,7 @@
   <header class="navbar">
     <a href="/" class="nav-brand">
       <img id="bot-avatar" src="https://cdn.discordapp.com/embed/avatars/0.png" alt="Bot Logo">
-      <span id="bot-name">rikeozinho</span>
+      <span id="bot-name">Noozy</span>
     </a>
     <div class="nav-user" id="nav-auth-section">
       <a href="/auth/login" class="btn btn-primary"><i class="fa-brands fa-discord"></i> Entrar com Discord</a>
@@ -24,10 +24,10 @@
   <main class="container">
     <section class="hero">
       <div class="hero-badge">
-        <i class="fa-solid fa-bolt"></i> Sistema Completo de Tickets, FastFlags & Roblox
+        <i class="fa-solid fa-bolt"></i> Sistema Completo de Tickets, FastFlags, Economia & Roblox
       </div>
-      <h1>Gerencie seu Servidor com o Painel do rikeozinho</h1>
-      <p>Configure tickets com transcrições em HTML, verificação por Captcha visual, rastreador de versões do Roblox, economia completa, auto-moderação e alertas de YouTube em uma única interface moderna.</p>
+      <h1>Gerencie seu Servidor com o Painel do Noozy</h1>
+      <p>Configure tickets com transcrições em HTML, verificação por Captcha visual, rastreador de versões do Roblox, economia completa, auto-moderação e alertas de lives em uma única interface moderna.</p>
 
       <div class="hero-actions">
         <a id="hero-cta-btn" href="/auth/login" class="btn btn-primary" style="padding: 0.85rem 1.85rem; font-size: 1.05rem;">
@@ -127,7 +127,7 @@
         const stats = await statsRes.json();
 
         if (stats.avatar) document.getElementById('bot-avatar').src = stats.avatar;
-        document.getElementById('bot-name').innerText = 'rikeozinho';
+        document.getElementById('bot-name').innerText = 'Noozy';
 
         document.getElementById('stat-guilds').innerText = stats.guildsCount.toLocaleString('pt-BR');
         document.getElementById('stat-users').innerText = stats.usersCount.toLocaleString('pt-BR');

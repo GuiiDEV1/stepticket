@@ -54,7 +54,7 @@ function startScheduler(client) {
             title: ann.title || `📢 Comunicado • ${guild.name}`,
             description: ann.message,
             color: color,
-            footerText: 'Aviso Automático • rikeozinho',
+            footerText: 'Aviso Automático • Noozy',
             thumbnail: guild.iconURL({ dynamic: true })
           });
 

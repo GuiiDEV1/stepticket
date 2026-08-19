@@ -1,14 +1,14 @@
-# 🤖 rikeozinho - Discord Bot Multifuncional & Dashboard Web
+# 🤖 Noozy - Discord Bot Multifuncional & Dashboard Web (`noozy.app`)
 
-Bot de Discord profissional, moderno (Discord.js v14) e completo com **Painel Web Dashboard Oficial**, **Tickets**, **Gerenciador de FastFlags & Offsets**, **Rastreador de Atualizações do Roblox**, **Verificação Anti-Bot com Captcha Canvas**, **Economia Completa com Loja de Cargos**, **Notificador de YouTube**, **Moderação Completa com Warns**, **Auto-Moderação & Anti-Spam**, **Sorteios (Giveaways)**, **Sugestões**, **Cargos por Botão (Reaction Roles)**, **Níveis & XP em Canvas**, **Enquetes** e **Utilitários**.
+Bot de Discord profissional, moderno (Discord.js v14) e completo com **Painel Web Dashboard Oficial (noozy.app)**, **Tickets**, **Gerenciador de FastFlags & Offsets**, **Rastreador de Atualizações do Roblox**, **Verificação Anti-Bot com Captcha Canvas**, **Economia Completa com Loja de Cargos**, **Notificador de YouTube/Twitch/Kick**, **Moderação Completa com Warns**, **Auto-Moderação & Anti-Spam**, **Sorteios (Giveaways)**, **Sugestões**, **Cargos por Botão (Reaction Roles)**, **Níveis & XP em Canvas**, **Enquetes** e **Utilitários**.
 
 ---
 
 ## 🌐 Painel Web Dashboard
-- Acesse via navegador: `http://localhost:3000`
+- Acesse via navegador: `https://noozy.app` (ou `http://localhost:3000` em desenvolvimento)
 - Login seguro oficial via **Discord OAuth2**.
 - Seletor de Servidores Inteligente (Servidores ativos com o bot vs Servidores para adicionar).
-- Controle gráfico de Tickets, Verificação, Roblox Tracker, Loja, YouTube e AutoMod.
+- Controle gráfico de Tickets, Verificação, Roblox Tracker, Loja, Criadores e AutoMod.
 
 ---
 

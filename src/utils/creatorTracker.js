@@ -242,7 +242,7 @@ async function sendCreatorAlert(client, creator, data, isTest = false) {
         `\n🔗 [Clique aqui para assistir](${data.url})`,
       color: platformColor,
       image: data.thumbnail,
-      footerText: `Notificações de ${platformName} • rikeozinho`
+      footerText: `Notificações de ${platformName} • Noozy`
     });
 
     const content = pingText ? `${pingText}\n${formattedMsg}` : formattedMsg;

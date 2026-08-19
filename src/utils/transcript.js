@@ -31,7 +31,7 @@ async function generateTranscript(channel, fileName = `transcript-${channel.name
       returnType: 'buffer',
       filename: fileName,
       saveImages: false, // Economiza RAM
-      footerText: 'Exportado via rikeozinho',
+      footerText: 'Exportado via Noozy • noozy.app',
       poweredBy: false
     });
 
