@@ -11,8 +11,18 @@ const DatabaseManager = require('../../database/manager.js');
 const { generateCaptcha } = require('../../utils/captchaGenerator.js');
 const { createEmbed, successEmbed, errorEmbed, COLORS } = require('../../utils/embedBuilder.js');
 
-// Armazena códigos de captcha temporários dos usuários (Map: userId -> { code, expiresAt })
+// Armazena códigos de captcha temporários dos usuários (Map: userId -> { code, expiresAt, attempts })
 const activeCaptchas = new Map();
+
+// Limpeza periódica de captchas expirados da memória a cada 5 minutos
+setInterval(() => {
+  const now = Date.now();
+  for (const [userId, data] of activeCaptchas.entries()) {
+    if (now > data.expiresAt) {
+      activeCaptchas.delete(userId);
+    }
+  }
+}, 300000);
 
 module.exports = {
   name: Events.InteractionCreate,
@@ -171,13 +181,14 @@ module.exports = {
     }
 
     // =========================================================================
-    // 4. SUBMIT DO MODAL DO CAPTCHA
+    // 4. SUBMIT DO MODAL DO CAPTCHA (COM LIMITE DE TENTATIVAS ANTI-BRUTE FORCE)
     // =========================================================================
     if (interaction.isModalSubmit() && interaction.customId === 'modal_verify_captcha') {
       const typed = interaction.fields.getTextInputValue('captcha_input').trim().toUpperCase();
       const stored = activeCaptchas.get(interaction.user.id);
 
       if (!stored || Date.now() > stored.expiresAt) {
+        activeCaptchas.delete(interaction.user.id);
         return interaction.reply({
           embeds: [errorEmbed('Captcha Expirado', 'Seu código expirou. Gere um novo captcha no canal de verificação.')],
           ephemeral: true
@@ -185,8 +196,19 @@ module.exports = {
       }
 
       if (typed !== stored.code.toUpperCase()) {
+        stored.attempts = (stored.attempts || 0) + 1;
+
+        if (stored.attempts >= 3) {
+          activeCaptchas.delete(interaction.user.id);
+          return interaction.reply({
+            embeds: [errorEmbed('Limite de Tentativas Excedido', 'Você errou o código 3 vezes seguidas. Por segurança, este captcha foi cancelado. Clique em **"Verificar-se"** para gerar um novo.')],
+            ephemeral: true
+          });
+        }
+
+        const remaining = 3 - stored.attempts;
         return interaction.reply({
-          embeds: [errorEmbed('Código Incorreto', `O código digitado (\`${typed}\`) está incorreto. Tente novamente!`)],
+          embeds: [errorEmbed('Código Incorreto', `O código digitado (\`${typed}\`) está incorreto. Você ainda tem **${remaining} tentativa(s)** antes do captcha ser cancelado.`)],
           ephemeral: true
         });
       }

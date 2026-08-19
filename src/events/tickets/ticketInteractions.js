@@ -160,6 +160,19 @@ module.exports = {
         return interaction.reply({ embeds: [errorEmbed('Erro', 'Ticket não encontrado.')], ephemeral: true });
       }
 
+      const config = DatabaseManager.getConfig(interaction.guild.id);
+      const isStaff = interaction.member.permissions.has(PermissionFlagsBits.ManageChannels) ||
+        interaction.member.permissions.has(PermissionFlagsBits.Administrator) ||
+        (config.ticket_staff_role_id && interaction.member.roles.cache.has(config.ticket_staff_role_id));
+      const isOwner = interaction.user.id === ticket.user_id;
+
+      if (!isStaff && !isOwner) {
+        return interaction.reply({
+          embeds: [errorEmbed('Sem Permissão', 'Apenas a Staff ou o autor original podem reabrir este ticket.')],
+          ephemeral: true
+        });
+      }
+
       DatabaseManager.updateTicket(interaction.channel.id, { status: 'open' });
 
       // Restaura permissão do criador
@@ -183,6 +196,18 @@ module.exports = {
       const ticket = DatabaseManager.getTicketByChannel(interaction.channel.id);
       if (!ticket) {
         return interaction.reply({ embeds: [errorEmbed('Erro', 'Ticket não encontrado.')], ephemeral: true });
+      }
+
+      const config = DatabaseManager.getConfig(interaction.guild.id);
+      const isStaff = interaction.member.permissions.has(PermissionFlagsBits.ManageMessages) ||
+        interaction.member.permissions.has(PermissionFlagsBits.Administrator) ||
+        (config.ticket_staff_role_id && interaction.member.roles.cache.has(config.ticket_staff_role_id));
+
+      if (!isStaff) {
+        return interaction.reply({
+          embeds: [errorEmbed('Acesso Restrito à Staff', 'Apenas membros da equipe de suporte podem assumir este atendimento.')],
+          ephemeral: true
+        });
       }
 
       if (ticket.claimed_by) {
@@ -215,11 +240,23 @@ module.exports = {
       return;
     }
 
-    // 7. BOTÃO: DELETAR TICKET COM CONTAGEM REGRESSIVA
+    // 7. BOTÃO: DELETAR TICKET COM CONTAGEM REGRESSIVA (REQUER PERMISSÃO DE STAFF)
     if (interaction.isButton() && interaction.customId === 'ticket_btn_delete') {
+      const config = DatabaseManager.getConfig(interaction.guild.id);
+      const isStaff = interaction.member.permissions.has(PermissionFlagsBits.ManageChannels) ||
+        interaction.member.permissions.has(PermissionFlagsBits.Administrator) ||
+        (config.ticket_staff_role_id && interaction.member.roles.cache.has(config.ticket_staff_role_id));
+
+      if (!isStaff) {
+        return interaction.reply({
+          embeds: [errorEmbed('Permissão Negada', 'Apenas moderadores com permissão de gerenciar canais podem deletar tickets.')],
+          ephemeral: true
+        });
+      }
+
       const deleteEmbed = warningEmbed(
         'Deletando Canal',
-        'Este canal de atendimento será excluído permanentemente em **5 segundos**...'
+        'Este canal de atendimento será excluído permanentemente em **5 segundos** por determinação da moderação...'
       );
 
       await interaction.reply({ embeds: [deleteEmbed] });

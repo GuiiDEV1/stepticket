@@ -1,0 +1,11 @@
+.env
+.env.*
+data/
+node_modules/
+npm-debug.log*
+.git/
+.gitignore
+*.zip
+*.log
+.system_generated/
+.user_uploaded/

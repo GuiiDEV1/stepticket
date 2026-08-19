@@ -81,8 +81,10 @@ module.exports = {
         });
       }
 
-      const eco = DatabaseManager.getEconomy(guildId, userId);
-      if (eco.wallet < item.price) {
+      // Débito atômico imediato para prevenir Race Conditions e Gasto Duplo
+      const deducted = DatabaseManager.removeWallet(guildId, userId, item.price);
+      if (!deducted) {
+        const eco = DatabaseManager.getEconomy(guildId, userId);
         return interaction.reply({
           embeds: [errorEmbed('Saldo Insuficiente', `Você precisa de **🪙 ${item.price.toLocaleString('pt-BR')} Coins** na sua carteira para comprar este cargo.\n**Seu Saldo Atual:** \`🪙 ${eco.wallet.toLocaleString('pt-BR')}\``)],
           ephemeral: true
@@ -91,7 +93,6 @@ module.exports = {
 
       try {
         await interaction.member.roles.add(role.id);
-        DatabaseManager.removeWallet(guildId, userId, item.price);
         const updated = DatabaseManager.getEconomy(guildId, userId);
 
         const embed = createEmbed({
@@ -103,8 +104,10 @@ module.exports = {
 
         return interaction.reply({ embeds: [embed] });
       } catch (err) {
+        // Estorno automático caso a API do Discord falhe
+        DatabaseManager.addWallet(guildId, userId, item.price);
         return interaction.reply({
-          embeds: [errorEmbed('Erro de Permissão', 'O bot não conseguiu entregar o cargo. Verifique se o cargo do bot está acima na hierarquia do servidor.')],
+          embeds: [errorEmbed('Erro de Permissão', 'O bot não conseguiu entregar o cargo. Suas moedas foram estornadas. Verifique se o cargo do bot está acima na hierarquia do servidor.')],
           ephemeral: true
         });
       }

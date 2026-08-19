@@ -1,5 +1,6 @@
 const fs = require('fs');
 const path = require('path');
+const crypto = require('crypto');
 const { AttachmentBuilder } = require('discord.js');
 
 // Garante que a pasta persistente de transcrições exista
@@ -13,12 +14,14 @@ try {
 }
 
 /**
- * Gera um arquivo HTML com o histórico do ticket, salva no disco para a Web e retorna o anexo
+ * Gera um arquivo HTML com o histórico do ticket, salva no disco com ID de alta entropia para a Web e retorna o anexo
  * @param {import('discord.js').TextChannel} channel 
  * @param {string} fileName 
  */
 async function generateTranscript(channel, fileName = `transcript-${channel.name}.html`) {
-  const safeId = channel.name.replace(/[^a-zA-Z0-9_-]/g, '') || channel.id;
+  // Gera token de alta entropia (128 bits / 32 hex chars) para evitar enumeração de tickets confidenciais
+  const secureToken = crypto.randomBytes(16).toString('hex');
+  const safeId = `tr_${secureToken}_${channel.id}`;
   const filePath = path.join(transcriptsDir, `${safeId}.html`);
 
   try {
@@ -69,7 +72,10 @@ async function generateTranscript(channel, fileName = `transcript-${channel.name
  * Retorna o caminho do arquivo de transcrição salvo
  */
 function getTranscriptFilePath(id) {
+  if (!id || typeof id !== 'string') return null;
   const safeId = id.replace(/[^a-zA-Z0-9_-]/g, '');
+  if (!safeId) return null;
+
   const htmlPath = path.join(transcriptsDir, `${safeId}.html`);
   if (fs.existsSync(htmlPath)) return { path: htmlPath, type: 'html' };
 

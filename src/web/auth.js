@@ -2,8 +2,12 @@ const crypto = require('crypto');
 const { PermissionsBitField } = require('discord.js');
 const DatabaseManager = require('../database/manager.js');
 
-// Segredo para assinatura de cookies de sessão
-const SESSION_SECRET = process.env.SESSION_SECRET || 'rikeozinho_super_secure_session_secret_key_2026';
+// Segredo para assinatura de cookies de sessão (Gera chave criptográfica segura se não estiver no .env)
+const SESSION_SECRET = process.env.SESSION_SECRET || (function() {
+  const generated = crypto.randomBytes(64).toString('hex');
+  console.warn('⚠️ [SEGURANÇA] SESSION_SECRET não foi definido no .env. Uma chave criptográfica aleatória segura de 64 bytes foi gerada para esta execução.');
+  return generated;
+})();
 const CLIENT_ID = process.env.CLIENT_ID || '1538556104924070050';
 const CLIENT_SECRET = process.env.CLIENT_SECRET || process.env.DISCORD_CLIENT_SECRET || '';
 
@@ -125,6 +129,7 @@ function requireAuth(req, res, next) {
     return res.status(401).json({ error: 'Sessão expirada ou inválida' });
   }
 
+  req.session = session;
   req.user = session.user;
   req.userGuilds = session.guilds;
   next();

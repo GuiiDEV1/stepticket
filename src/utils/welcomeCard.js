@@ -50,8 +50,10 @@ async function generateWelcomeCard({
   roundRect(ctx, 0, 0, width, height, 20);
   ctx.clip();
 
+  const { isSafePublicUrl } = require('./security.js');
+
   let hasCustomBg = false;
-  if (backgroundImageUrl) {
+  if (backgroundImageUrl && isSafePublicUrl(backgroundImageUrl)) {
     try {
       const bgImg = await loadImage(backgroundImageUrl);
       ctx.drawImage(bgImg, 0, 0, width, height);

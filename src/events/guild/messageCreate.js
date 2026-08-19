@@ -4,6 +4,21 @@ const { createEmbed, warningEmbed, COLORS } = require('../../utils/embedBuilder'
 
 // Cache em memória para detecção de spam/flood (Map: userId -> array de timestamps)
 const userMessageTimestamps = new Map();
+// Cache em memória para cooldown de ganho de XP (Map: guildId:userId -> timestamp)
+const xpCooldowns = new Map();
+
+// Limpeza de caches a cada 10 minutos
+setInterval(() => {
+  const now = Date.now();
+  for (const [key, timestamp] of xpCooldowns.entries()) {
+    if (now - timestamp > 120000) xpCooldowns.delete(key);
+  }
+  for (const [userId, timestamps] of userMessageTimestamps.entries()) {
+    if (timestamps.length === 0 || now - timestamps[timestamps.length - 1] > 60000) {
+      userMessageTimestamps.delete(userId);
+    }
+  }
+}, 600000);
 
 module.exports = {
   name: 'messageCreate',
@@ -20,121 +35,150 @@ module.exports = {
     );
 
     // ==========================================
-    // 1. AUTO-MODERAÇÃO (Se não for staff)
+    // 1. SISTEMA DE AUTOMOD & PROTEÇÃO DE CHAT
     // ==========================================
-    if (!isStaff) {
-      let violated = false;
-      let violationReason = '';
+    if (config.automod_enabled && !isStaff) {
+      const content = message.content;
 
-      // A) Anti-Invite (Convites do Discord)
-      if (config.automod_antiinvite) {
-        const inviteRegex = /(discord\.(gg|io|me|li)|discordapp\.com\/invite|discord\.com\/invite)\/[a-zA-Z0-9]+/i;
-        if (inviteRegex.test(message.content)) {
-          violated = true;
-          violationReason = 'Divulgação de convites do Discord não é permitida!';
+      // Anti-Invite do Discord
+      if (config.automod_anti_invites) {
+        const discordInviteRegex = /(discord\.(gg|io|me|li)|discordapp\.com\/invite|discord\.com\/invite)\/[a-zA-Z0-9_-]+/gi;
+        if (discordInviteRegex.test(content)) {
+          await message.delete().catch(() => {});
+          DatabaseManager.logActivity(message.guild.id, {
+            type: 'automod',
+            icon: '🛡️',
+            title: 'Convite Bloqueado',
+            description: `Mensagem de ${message.author.tag} contendo convite foi apagada em #${message.channel.name}.`,
+            user_tag: message.author.tag,
+            user_avatar: message.author.displayAvatarURL()
+          });
+          const warning = warningEmbed('Anti-Invite', `${message.author}, você não tem permissão para divulgar links de outros servidores aqui!`);
+          return message.channel.send({ embeds: [warning] }).then(m => setTimeout(() => m.delete().catch(() => {}), 5000));
         }
       }
 
-      // B) Anti-Link Geral
-      if (!violated && config.automod_antilink) {
-        const linkRegex = /https?:\/\/[^\s]+/i;
-        if (linkRegex.test(message.content)) {
-          violated = true;
-          violationReason = 'O envio de links externos está desativado neste servidor!';
+      // Anti-Links Genéricos
+      if (config.automod_anti_links) {
+        const urlRegex = /(https?:\/\/[^\s]+)/gi;
+        if (urlRegex.test(content)) {
+          await message.delete().catch(() => {});
+          DatabaseManager.logActivity(message.guild.id, {
+            type: 'automod',
+            icon: '🔗',
+            title: 'Link Não Autorizado',
+            description: `Link enviado por ${message.author.tag} foi apagado em #${message.channel.name}.`,
+            user_tag: message.author.tag,
+            user_avatar: message.author.displayAvatarURL()
+          });
+          const warning = warningEmbed('Anti-Link', `${message.author}, o envio de links externos está desativado para membros neste servidor.`);
+          return message.channel.send({ embeds: [warning] }).then(m => setTimeout(() => m.delete().catch(() => {}), 5000));
         }
       }
 
-      // C) Anti-Mass Mention
-      if (!violated && config.automod_antimassmention) {
-        if (message.mentions.users.size >= 4 || message.mentions.roles.size >= 3 || message.content.includes('@everyone') || message.content.includes('@here')) {
-          violated = true;
-          violationReason = 'Menções em massa não são permitidas!';
+      // Bloqueio de Palavras Proibidas
+      if (config.automod_badwords) {
+        const badwords = config.automod_badwords.split(',').map(w => w.trim().toLowerCase()).filter(w => w.length > 0);
+        const lowerContent = content.toLowerCase();
+
+        const containsBadword = badwords.some(word => lowerContent.includes(word));
+        if (containsBadword) {
+          await message.delete().catch(() => {});
+          DatabaseManager.logActivity(message.guild.id, {
+            type: 'automod',
+            icon: '🤬',
+            title: 'Palavra Proibida',
+            description: `Mensagem de ${message.author.tag} com termo censurado foi removida em #${message.channel.name}.`,
+            user_tag: message.author.tag,
+            user_avatar: message.author.displayAvatarURL()
+          });
+          const warning = warningEmbed('Filtro de Palavras', `${message.author}, sua mensagem continha palavras não permitidas pelas diretrizes do servidor.`);
+          return message.channel.send({ embeds: [warning] }).then(m => setTimeout(() => m.delete().catch(() => {}), 5000));
         }
       }
 
-      // D) Anti-Spam / Anti-Flood
-      if (!violated && config.automod_antispam) {
+      // Anti-Spam / Anti-Flood (Detecção: mais de 5 mensagens em menos de 5 segundos)
+      if (config.automod_anti_spam) {
         const now = Date.now();
-        const userTimes = userMessageTimestamps.get(message.author.id) || [];
-        const recentTimes = userTimes.filter(time => now - time < 4000); // Últimos 4 segundos
+        const userHistory = userMessageTimestamps.get(message.author.id) || [];
+        const recentMessages = userHistory.filter(timestamp => now - timestamp < 5000);
+        recentMessages.push(now);
+        userMessageTimestamps.set(message.author.id, recentMessages);
 
-        recentTimes.push(now);
-        userMessageTimestamps.set(message.author.id, recentTimes);
+        if (recentMessages.length >= 5) {
+          await message.delete().catch(() => {});
+          DatabaseManager.logActivity(message.guild.id, {
+            type: 'automod',
+            icon: '⚡',
+            title: 'Anti-Flood Acionado',
+            description: `${message.author.tag} enviou mensagens rápidas demais em #${message.channel.name}.`,
+            user_tag: message.author.tag,
+            user_avatar: message.author.displayAvatarURL()
+          });
 
-        if (recentTimes.length >= 5) {
-          violated = true;
-          violationReason = 'Você está enviando mensagens rápido demais (Anti-Spam)!';
-          // Aplica timeout de 1 minuto
-          await member.timeout(60 * 1000, 'AutoMod: Anti-Spam/Flood').catch(() => {});
+          // Timeout de 1 minuto se tiver permissão
+          if (member && member.moderatable) {
+            await member.timeout(60 * 1000, 'Anti-Spam / Anti-Flood automático').catch(() => {});
+          }
+
+          const warning = warningEmbed('Anti-Spam Ativado', `${message.author}, por favor diminua a velocidade! Você está enviando mensagens rápido demais.`);
+          return message.channel.send({ embeds: [warning] }).then(m => setTimeout(() => m.delete().catch(() => {}), 6000));
         }
       }
 
-      // Se violou alguma regra do AutoMod
-      if (violated) {
-        await message.delete().catch(() => {});
+      // Anti-Mass Mention (Detecção: 5 ou mais menções em uma única mensagem)
+      if (config.automod_anti_mass_mention) {
+        const mentionsCount = message.mentions.users.size + message.mentions.roles.size;
+        if (mentionsCount >= 5) {
+          await message.delete().catch(() => {});
+          DatabaseManager.logActivity(message.guild.id, {
+            type: 'automod',
+            icon: '📢',
+            title: 'Menção em Massa Bloqueada',
+            description: `${message.author.tag} tentou mencionar ${mentionsCount} usuários/cargos simultaneamente.`,
+            user_tag: message.author.tag,
+            user_avatar: message.author.displayAvatarURL()
+          });
 
-        const warnMsg = await message.channel.send({
-          content: `${message.author}`,
-          embeds: [warningEmbed('AutoMod - Ação Bloqueada', violationReason)]
-        }).catch(() => {});
-
-        setTimeout(() => {
-          warnMsg?.delete().catch(() => {});
-        }, 6000);
-
-        // Enviar log de AutoMod
-        if (config.logs_channel_id) {
-          const logChannel = message.guild.channels.cache.get(config.logs_channel_id);
-          if (logChannel) {
-            const logEmbed = createEmbed({
-              title: '🤖 AutoMod - Violação Detectada',
-              color: COLORS.ERROR,
-              fields: [
-                { name: '👤 Infrator', value: `${message.author} (\`${message.author.id}\`)`, inline: true },
-                { name: '📍 Canal', value: `${message.channel}`, inline: true },
-                { name: '⚠️ Motivo', value: violationReason, inline: false },
-                { name: '💬 Mensagem Bloqueada', value: message.content ? message.content.slice(0, 1000) : '*Sem texto*', inline: false }
-              ]
-            });
-            logChannel.send({ embeds: [logEmbed] }).catch(() => {});
+          if (member && member.moderatable) {
+            await member.timeout(5 * 60 * 1000, 'Detecção de menção em massa (Mass Mention)').catch(() => {});
           }
+
+          const warning = warningEmbed('Menção em Massa', `${message.author}, você não pode mencionar múltiplos usuários ou cargos simultaneamente.`);
+          return message.channel.send({ embeds: [warning] }).then(m => setTimeout(() => m.delete().catch(() => {}), 6000));
         }
-
-        // FEED DE ATIVIDADES AO VIVO NO DASHBOARD
-        DatabaseManager.logActivity(message.guild.id, {
-          type: 'automod',
-          icon: '🤖',
-          title: 'AutoMod: Violação Bloqueada',
-          description: `${message.author.tag} teve mensagem deletada em #${message.channel.name}. Motivo: ${violationReason}`,
-          user_tag: message.author.tag,
-          user_avatar: message.author.displayAvatarURL({ dynamic: true })
-        });
-
-        return; // Interrompe para não computar XP
       }
     }
 
     // ==========================================
-    // 2. SISTEMA DE XP & LEVELING
+    // 2. SISTEMA DE XP & LEVELING (COM COOLDOWN DE 60 SEGUNDOS)
     // ==========================================
     if (config.level_enabled) {
-      // Ganho aleatório de 15 a 25 XP por mensagem
-      const randomXP = Math.floor(Math.random() * 11) + 15;
-      const xpResult = DatabaseManager.addXP(message.guild.id, message.author.id, randomXP);
+      const cooldownKey = `${message.guild.id}:${message.author.id}`;
+      const lastXPTime = xpCooldowns.get(cooldownKey) || 0;
+      const now = Date.now();
 
-      if (xpResult.leveledUp) {
-        const targetChannel = config.level_channel_id 
-          ? message.guild.channels.cache.get(config.level_channel_id) || message.channel 
-          : message.channel;
+      if (now - lastXPTime >= 60000) {
+        xpCooldowns.set(cooldownKey, now);
 
-        const levelUpEmbed = createEmbed({
-          title: '⭐ Subiu de Nível!',
-          description: `Parabéns ${message.author}! Você alcançou o **Nível ${xpResult.newLevel}**! 🎉\nContinue participando do chat para subir ainda mais no ranking!`,
-          thumbnail: message.author.displayAvatarURL({ dynamic: true }),
-          color: COLORS.PRIMARY
-        });
+        // Ganho aleatório de 15 a 25 XP por mensagem
+        const randomXP = Math.floor(Math.random() * 11) + 15;
+        const xpResult = DatabaseManager.addXP(message.guild.id, message.author.id, randomXP);
 
-        targetChannel.send({ content: `${message.author}`, embeds: [levelUpEmbed] }).catch(() => {});
+        if (xpResult.leveledUp) {
+          const targetChannel = config.level_channel_id 
+            ? message.guild.channels.cache.get(config.level_channel_id) || message.channel 
+            : message.channel;
+
+          const levelUpEmbed = createEmbed({
+            title: '⭐ Subiu de Nível!',
+            description: `Parabéns ${message.author}! Você alcançou o **Nível ${xpResult.newLevel}**! 🎉\nContinue participando do chat para subir ainda mais no ranking!`,
+            thumbnail: message.author.displayAvatarURL({ dynamic: true }),
+            color: COLORS.PRIMARY
+          });
+
+          targetChannel.send({ content: `${message.author}`, embeds: [levelUpEmbed] }).catch(() => {});
+        }
       }
     }
   }

@@ -200,6 +200,8 @@ function createApiRouter(client) {
     const botGuild = req.botGuild;
     const guildId = req.targetGuildId;
 
+    const { isSafePublicUrl } = require('../../utils/security.js');
+
     const updates = {
       ticket_category_id: categoryId || null,
       ticket_staff_role_id: staffRoleId || null,
@@ -209,7 +211,13 @@ function createApiRouter(client) {
     if (ticketTitle !== undefined) updates.ticket_title = ticketTitle;
     if (ticketDescription !== undefined) updates.ticket_description = ticketDescription;
     if (ticketColor !== undefined) updates.ticket_color = ticketColor;
-    if (ticketBanner !== undefined) updates.ticket_banner = ticketBanner;
+    if (ticketBanner !== undefined) {
+      const cleanBanner = ticketBanner ? String(ticketBanner).trim() : null;
+      if (cleanBanner && !isSafePublicUrl(cleanBanner)) {
+        return res.status(400).json({ error: 'A URL do banner do ticket é inválida ou aponta para endereço restrito.' });
+      }
+      updates.ticket_banner = cleanBanner;
+    }
     if (ticketStyle !== undefined) updates.ticket_style = ticketStyle;
     if (Array.isArray(ticketCategories)) updates.ticket_categories = ticketCategories;
 
@@ -471,6 +479,17 @@ function createApiRouter(client) {
     } = req.body;
     const guildId = req.targetGuildId;
 
+    const { isSafePublicUrl } = require('../../utils/security.js');
+
+    let cleanBackground = null;
+    if (welcomeCanvasBackground && welcomeCanvasBackground.trim()) {
+      const trimmed = welcomeCanvasBackground.trim();
+      if (!isSafePublicUrl(trimmed)) {
+        return res.status(400).json({ error: 'A URL da imagem de fundo do Canvas é inválida ou aponta para endereço restrito.' });
+      }
+      cleanBackground = trimmed;
+    }
+
     DatabaseManager.updateConfig(guildId, {
       welcome_channel_id: welcomeChannelId || null,
       welcome_message: welcomeMessage || 'Olá {user}, seja muito bem-vindo(a) ao servidor **{server}**! Agora somos **{members}** membros.',
@@ -478,7 +497,7 @@ function createApiRouter(client) {
       welcome_canvas_title: welcomeCanvasTitle || 'BEM-VINDO(A)!',
       welcome_canvas_color1: welcomeCanvasColor1 || '#5865F2',
       welcome_canvas_color2: welcomeCanvasColor2 || '#23A55A',
-      welcome_canvas_background: welcomeCanvasBackground ? welcomeCanvasBackground.trim() : null,
+      welcome_canvas_background: cleanBackground,
       welcome_dm_enabled: welcomeDmEnabled ? 1 : 0,
       welcome_dm_message: welcomeDmMessage || 'Olá {user}, seja bem-vindo(a) ao **{server}**! Esperamos que você se divirta na nossa comunidade.',
       welcome_dm_color: welcomeDmColor || '#5865F2',
@@ -507,7 +526,7 @@ function createApiRouter(client) {
     }
 
     try {
-      const user = req.session.user;
+      const user = req.user;
       let msg = config.welcome_message || 'Olá {user}, seja muito bem-vindo(a) ao servidor **{server}**! Agora somos **{members}** membros.';
       msg = msg
         .replace(/{user}/g, `<@${user.id}>`)
@@ -515,10 +534,14 @@ function createApiRouter(client) {
         .replace(/{server}/g, botGuild.name)
         .replace(/{members}/g, botGuild.memberCount.toString());
 
+      const userAvatar = user.avatar
+        ? `https://cdn.discordapp.com/avatars/${user.id}/${user.avatar}.png?size=256`
+        : 'https://cdn.discordapp.com/embed/avatars/0.png';
+
       const welcomeEmbed = createEmbed({
         title: `👋 [TESTE] Bem-vindo(a) ao ${botGuild.name}!`,
         description: msg,
-        thumbnail: user.avatar,
+        thumbnail: userAvatar,
         color: COLORS.SUCCESS,
         footerText: `Membro #${botGuild.memberCount} • Teste de Boas-Vindas`
       });
@@ -527,7 +550,7 @@ function createApiRouter(client) {
         const { generateWelcomeCard } = require('../../utils/welcomeCard');
         const cardAttachment = await generateWelcomeCard({
           username: user.username,
-          avatarURL: user.avatar,
+          avatarURL: userAvatar,
           memberCount: botGuild.memberCount,
           guildName: botGuild.name,
           title: config.welcome_canvas_title || 'BEM-VINDO(A)!',
@@ -555,7 +578,7 @@ function createApiRouter(client) {
     if (!botGuild) return res.status(404).json({ error: 'Servidor não encontrado.' });
 
     const config = DatabaseManager.getConfig(guildId);
-    const userId = req.session.user.id;
+    const userId = req.user.id;
 
     try {
       const discordUser = await client.users.fetch(userId);
@@ -630,17 +653,21 @@ function createApiRouter(client) {
 
   router.patch('/guilds/:guildId/announcements/:id', requireAuth, requireGuildAdmin(client), (req, res) => {
     const { id } = req.params;
+    const guildId = req.targetGuildId;
     const updates = req.body;
 
-    const updated = DatabaseManager.updateAnnouncement(id, updates);
-    if (!updated) return res.status(404).json({ error: 'Aviso não encontrado.' });
+    const updated = DatabaseManager.updateAnnouncement(guildId, id, updates);
+    if (!updated) return res.status(404).json({ error: 'Aviso não encontrado neste servidor.' });
 
     res.json({ success: true, item: updated, message: 'Aviso atualizado!' });
   });
 
   router.delete('/guilds/:guildId/announcements/:id', requireAuth, requireGuildAdmin(client), (req, res) => {
     const { id } = req.params;
-    DatabaseManager.deleteAnnouncement(id);
+    const guildId = req.targetGuildId;
+    const deleted = DatabaseManager.deleteAnnouncement(guildId, id);
+    if (!deleted) return res.status(404).json({ error: 'Aviso não encontrado neste servidor.' });
+
     res.json({ success: true, message: 'Aviso agendado removido!' });
   });
 

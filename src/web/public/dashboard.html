@@ -57,6 +57,17 @@
   </main>
 
   <script>
+    function escapeHTML(str) {
+      if (str === null || str === undefined) return '';
+      return String(str).replace(/[&<>'"]/g, tag => ({
+        '&': '&amp;',
+        '<': '&lt;',
+        '>': '&gt;',
+        "'": '&#39;',
+        '"': '&quot;'
+      }[tag]));
+    }
+
     async function loadDashboard() {
       try {
         // Validação de Sessão
@@ -94,10 +105,10 @@
               <div style="position: absolute; top: 14px; right: 14px; display: flex; align-items: center; gap: 6px; background: rgba(35, 165, 90, 0.12); padding: 3px 8px; border-radius: 20px; font-size: 0.75rem; color: var(--success); font-weight: 600; border: 1px solid rgba(35, 165, 90, 0.3);">
                 <span style="width: 6px; height: 6px; border-radius: 50%; background: var(--success); box-shadow: 0 0 6px var(--success);"></span> Ativo
               </div>
-              <img src="${g.icon}" class="guild-icon" alt="${g.name}">
-              <div class="guild-name" title="${g.name}">${g.name}</div>
-              <div class="guild-info"><i class="fa-solid fa-users"></i> ${g.memberCount || 0} membros</div>
-              <a href="/dashboard/${g.id}" class="btn btn-success"><i class="fa-solid fa-sliders"></i> Gerenciar</a>
+              <img src="${escapeHTML(g.icon)}" class="guild-icon" alt="${escapeHTML(g.name)}">
+              <div class="guild-name" title="${escapeHTML(g.name)}">${escapeHTML(g.name)}</div>
+              <div class="guild-info"><i class="fa-solid fa-users"></i> ${Number(g.memberCount || 0).toLocaleString('pt-BR')} membros</div>
+              <a href="/dashboard/${escapeHTML(g.id)}" class="btn btn-success"><i class="fa-solid fa-sliders"></i> Gerenciar</a>
             </div>
           `).join('');
         }
@@ -115,10 +126,10 @@
         } else {
           uninvitedContainer.innerHTML = guildsData.uninvitedGuilds.map(g => `
             <div class="guild-card uninvited">
-              <img src="${g.icon}" class="guild-icon" alt="${g.name}">
-              <div class="guild-name" title="${g.name}">${g.name}</div>
+              <img src="${escapeHTML(g.icon)}" class="guild-icon" alt="${escapeHTML(g.name)}">
+              <div class="guild-name" title="${escapeHTML(g.name)}">${escapeHTML(g.name)}</div>
               <div class="guild-info"><i class="fa-solid fa-shield-halved"></i> Administrador</div>
-              <a href="${g.inviteUrl}" target="_blank" class="btn btn-primary"><i class="fa-solid fa-plus"></i> Convidar Bot</a>
+              <a href="${escapeHTML(g.inviteUrl)}" target="_blank" class="btn btn-primary"><i class="fa-solid fa-plus"></i> Convidar Bot</a>
             </div>
           `).join('');
         }

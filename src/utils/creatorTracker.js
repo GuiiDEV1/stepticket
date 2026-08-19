@@ -2,12 +2,17 @@ const https = require('https');
 const http = require('http');
 const DatabaseManager = require('../database/manager');
 const { createEmbed, COLORS } = require('./embedBuilder');
+const { isSafePublicUrl } = require('./security');
 
 /**
- * Faz requisição HTTP/HTTPS leve
+ * Faz requisição HTTP/HTTPS leve com proteção Anti-SSRF e limite de redirecionamento
  */
-function fetchText(url) {
+function fetchText(url, maxRedirects = 3) {
   return new Promise((resolve, reject) => {
+    if (!isSafePublicUrl(url)) {
+      return reject(new Error('[SSRF GUARD] URL bloqueada por segurança.'));
+    }
+
     const parsed = new URL(url);
     const client = parsed.protocol === 'https:' ? https : http;
     const req = client.get(url, {
@@ -18,7 +23,15 @@ function fetchText(url) {
       timeout: 8000
     }, (res) => {
       if (res.statusCode >= 300 && res.statusCode < 400 && res.headers.location) {
-        return resolve(fetchText(res.headers.location));
+        if (maxRedirects <= 0) {
+          return reject(new Error('Muitos redirecionamentos'));
+        }
+        try {
+          const nextUrl = new URL(res.headers.location, url).toString();
+          return resolve(fetchText(nextUrl, maxRedirects - 1));
+        } catch (e) {
+          return reject(e);
+        }
       }
       let data = '';
       res.on('data', chunk => data += chunk);

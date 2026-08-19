@@ -668,21 +668,24 @@ const DatabaseManager = {
     return item;
   },
 
-  updateAnnouncement(id, updates) {
+  updateAnnouncement(guildId, id, updates) {
     if (!store.auto_announcements) store.auto_announcements = [];
-    const idx = store.auto_announcements.findIndex(a => a.id === id);
+    const idx = store.auto_announcements.findIndex(a => a.id === id && a.guild_id === guildId);
     if (idx !== -1) {
-      store.auto_announcements[idx] = { ...store.auto_announcements[idx], ...updates };
+      store.auto_announcements[idx] = { ...store.auto_announcements[idx], ...updates, guild_id: guildId };
       saveToDisk();
       return store.auto_announcements[idx];
     }
     return null;
   },
 
-  deleteAnnouncement(id) {
+  deleteAnnouncement(guildId, id) {
     if (!store.auto_announcements) store.auto_announcements = [];
-    store.auto_announcements = store.auto_announcements.filter(a => a.id !== id);
-    saveToDisk();
+    const initialLen = store.auto_announcements.length;
+    store.auto_announcements = store.auto_announcements.filter(a => !(a.id === id && a.guild_id === guildId));
+    const removed = initialLen !== store.auto_announcements.length;
+    if (removed) saveToDisk();
+    return removed;
   },
 
   // ===================== ACTIVITY LOGS (FEED DE ATIVIDADES AO VIVO) =====================

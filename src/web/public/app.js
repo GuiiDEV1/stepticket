@@ -1,3 +1,15 @@
+// Função de escape seguro de caracteres HTML para prevenir Cross-Site Scripting (XSS)
+function escapeHTML(str) {
+  if (str === null || str === undefined) return '';
+  return String(str).replace(/[&<>'"]/g, tag => ({
+    '&': '&amp;',
+    '<': '&lt;',
+    '>': '&gt;',
+    "'": '&#39;',
+    '"': '&quot;'
+  }[tag]));
+}
+
 // Recupera o ID numérico do servidor a partir da URL (/dashboard/123456789)
 const match = window.location.pathname.match(/\/dashboard\/([0-9]+)/);
 const guildId = match ? match[1] : '';
@@ -14,7 +26,7 @@ function showToast(message, type = 'success') {
   toast.className = `toast ${type}`;
   toast.innerHTML = `
     <i class="fa-solid ${type === 'success' ? 'fa-circle-check' : 'fa-circle-exclamation'}" style="color: ${type === 'success' ? 'var(--success)' : 'var(--danger)'};"></i>
-    <span>${message}</span>
+    <span>${escapeHTML(message)}</span>
   `;
   container.appendChild(toast);
   setTimeout(() => {
@@ -310,9 +322,9 @@ function renderTicketCategories() {
 
   container.innerHTML = currentTicketCategories.map((cat, index) => `
     <div style="display: grid; grid-template-columns: 70px 180px 1fr 40px; gap: 8px; align-items: center; background: rgba(255,255,255,0.02); padding: 8px 12px; border-radius: 8px; border: 1px solid var(--border-color);">
-      <input type="text" class="form-control" value="${cat.emoji || ''}" placeholder="Emoji" style="padding: 6px 8px; text-align: center;" oninput="currentTicketCategories[${index}].emoji = this.value; updateTicketPreview();">
-      <input type="text" class="form-control" value="${cat.label || ''}" placeholder="Nome (ex: Compras)" style="padding: 6px 10px;" oninput="currentTicketCategories[${index}].label = this.value; updateTicketPreview();">
-      <input type="text" class="form-control" value="${cat.desc || ''}" placeholder="Descrição opcional" style="padding: 6px 10px;" oninput="currentTicketCategories[${index}].desc = this.value; updateTicketPreview();">
+      <input type="text" class="form-control" value="${escapeHTML(cat.emoji || '')}" placeholder="Emoji" style="padding: 6px 8px; text-align: center;" oninput="currentTicketCategories[${index}].emoji = this.value; updateTicketPreview();">
+      <input type="text" class="form-control" value="${escapeHTML(cat.label || '')}" placeholder="Nome (ex: Compras)" style="padding: 6px 10px;" oninput="currentTicketCategories[${index}].label = this.value; updateTicketPreview();">
+      <input type="text" class="form-control" value="${escapeHTML(cat.desc || '')}" placeholder="Descrição opcional" style="padding: 6px 10px;" oninput="currentTicketCategories[${index}].desc = this.value; updateTicketPreview();">
       <button type="button" class="btn btn-danger" style="padding: 6px 8px; font-size: 0.75rem;" onclick="removeTicketCategory(${index})"><i class="fa-solid fa-trash"></i></button>
     </div>
   `).join('');
@@ -492,10 +504,10 @@ function renderShopItems() {
 
   tbody.innerHTML = serverData.shopItems.map(item => `
     <tr>
-      <td><code>#${item.id}</code></td>
-      <td><strong>@ ${item.name}</strong></td>
-      <td>🪙 ${item.price.toLocaleString('pt-BR')}</td>
-      <td style="color: var(--text-muted);">${item.description || '-'}</td>
+      <td><code>#${escapeHTML(item.id)}</code></td>
+      <td><strong>@ ${escapeHTML(item.name)}</strong></td>
+      <td>🪙 ${Number(item.price).toLocaleString('pt-BR')}</td>
+      <td style="color: var(--text-muted);">${escapeHTML(item.description || '-')}</td>
       <td>
         <button class="btn btn-danger" style="padding: 4px 10px; font-size: 0.8rem;" onclick="removeShopItem(${item.id})">
           <i class="fa-solid fa-trash"></i>
@@ -655,25 +667,25 @@ function renderAnnouncements() {
     else if (a.interval_minutes === 1440) intervalText = '24 horas';
 
     return `
-      <div style="background: rgba(255,255,255,0.03); border: 1px solid var(--border-color); border-left: 4px solid ${a.color || '#5865F2'}; padding: 1rem 1.25rem; border-radius: 8px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
+      <div style="background: rgba(255,255,255,0.03); border: 1px solid var(--border-color); border-left: 4px solid ${escapeHTML(a.color || '#5865F2')}; padding: 1rem 1.25rem; border-radius: 8px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
         <div style="flex: 1; min-width: 240px;">
           <div style="display: flex; gap: 8px; align-items: center; margin-bottom: 4px;">
-            <span style="font-weight: 600; color: #FFFFFF; font-size: 0.95rem;">${a.title || 'Aviso Automático'}</span>
-            <span style="background: rgba(88, 101, 242, 0.15); color: var(--primary); font-size: 0.75rem; padding: 2px 8px; border-radius: 4px;">${channelName}</span>
-            <span style="background: rgba(254, 231, 92, 0.15); color: var(--warning); font-size: 0.75rem; padding: 2px 8px; border-radius: 4px;">⏰ A cada ${intervalText}</span>
+            <span style="font-weight: 600; color: #FFFFFF; font-size: 0.95rem;">${escapeHTML(a.title || 'Aviso Automático')}</span>
+            <span style="background: rgba(88, 101, 242, 0.15); color: var(--primary); font-size: 0.75rem; padding: 2px 8px; border-radius: 4px;">${escapeHTML(channelName)}</span>
+            <span style="background: rgba(254, 231, 92, 0.15); color: var(--warning); font-size: 0.75rem; padding: 2px 8px; border-radius: 4px;">⏰ A cada ${escapeHTML(intervalText)}</span>
           </div>
-          <div style="color: var(--text-muted); font-size: 0.85rem; line-height: 1.3;">${a.message.slice(0, 120)}${a.message.length > 120 ? '...' : ''}</div>
+          <div style="color: var(--text-muted); font-size: 0.85rem; line-height: 1.3;">${escapeHTML(a.message.slice(0, 120))}${a.message.length > 120 ? '...' : ''}</div>
         </div>
 
         <div style="display: flex; gap: 8px; align-items: center;">
           <label style="margin: 0; font-size: 0.85rem; display: flex; align-items: center; gap: 6px; cursor: pointer;">
-            <input type="checkbox" ${a.enabled ? 'checked' : ''} onchange="toggleAnnouncement('${a.id}', this.checked)" style="cursor: pointer;">
+            <input type="checkbox" ${a.enabled ? 'checked' : ''} onchange="toggleAnnouncement('${escapeHTML(a.id)}', this.checked)" style="cursor: pointer;">
             <span>${a.enabled ? 'Ativo' : 'Pausado'}</span>
           </label>
-          <button type="button" class="btn btn-secondary" style="padding: 6px 12px; font-size: 0.8rem;" onclick="testAnnouncement('${a.id}')" title="Testar Envio Agora">
+          <button type="button" class="btn btn-secondary" style="padding: 6px 12px; font-size: 0.8rem;" onclick="testAnnouncement('${escapeHTML(a.id)}')" title="Testar Envio Agora">
             <i class="fa-solid fa-paper-plane"></i> Testar
           </button>
-          <button type="button" class="btn btn-danger" style="padding: 6px 10px; font-size: 0.8rem;" onclick="deleteAnnouncement('${a.id}')" title="Excluir">
+          <button type="button" class="btn btn-danger" style="padding: 6px 10px; font-size: 0.8rem;" onclick="deleteAnnouncement('${escapeHTML(a.id)}')" title="Excluir">
             <i class="fa-solid fa-trash"></i>
           </button>
         </div>
@@ -778,15 +790,15 @@ function renderActivityFeed(filter = currentActivityFilter) {
 
     return `
       <div style="background: rgba(255,255,255,0.02); border: 1px solid var(--border-color); border-radius: 8px; padding: 12px 16px; display: flex; align-items: center; gap: 14px;">
-        <img src="${avatar}" style="width: 38px; height: 38px; border-radius: 50%; object-fit: cover; flex-shrink: 0;" alt="Avatar">
+        <img src="${escapeHTML(avatar)}" style="width: 38px; height: 38px; border-radius: 50%; object-fit: cover; flex-shrink: 0;" alt="Avatar">
         <div style="flex: 1; min-width: 0;">
           <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 2px;">
-            <span style="font-size: 0.95rem; font-weight: 600; color: #FFFFFF;">${log.icon} ${log.title}</span>
-            <span style="font-size: 0.75rem; color: ${badgeColor}; background: rgba(255,255,255,0.05); padding: 1px 6px; border-radius: 4px; text-transform: uppercase;">${log.type}</span>
+            <span style="font-size: 0.95rem; font-weight: 600; color: #FFFFFF;">${escapeHTML(log.icon || '📌')} ${escapeHTML(log.title)}</span>
+            <span style="font-size: 0.75rem; color: ${badgeColor}; background: rgba(255,255,255,0.05); padding: 1px 6px; border-radius: 4px; text-transform: uppercase;">${escapeHTML(log.type)}</span>
           </div>
-          <div style="font-size: 0.85rem; color: #DBDEE1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${log.description}</div>
+          <div style="font-size: 0.85rem; color: #DBDEE1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${escapeHTML(log.description)}</div>
         </div>
-        <div style="font-size: 0.75rem; color: var(--text-muted); white-space: nowrap; flex-shrink: 0;">${timeAgo}</div>
+        <div style="font-size: 0.75rem; color: var(--text-muted); white-space: nowrap; flex-shrink: 0;">${escapeHTML(timeAgo)}</div>
       </div>
     `;
   }).join('');
@@ -890,25 +902,25 @@ function renderCreators() {
     }
 
     return `
-      <div style="background: rgba(255,255,255,0.03); border: 1px solid var(--border-color); border-left: 4px solid ${c.color || platformColor}; padding: 1rem 1.25rem; border-radius: 8px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
+      <div style="background: rgba(255,255,255,0.03); border: 1px solid var(--border-color); border-left: 4px solid ${escapeHTML(c.color || platformColor)}; padding: 1rem 1.25rem; border-radius: 8px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
         <div style="flex: 1; min-width: 240px;">
           <div style="display: flex; gap: 8px; align-items: center; margin-bottom: 4px;">
-            <span style="font-weight: 700; color: #FFFFFF; font-size: 0.95rem;">${c.username}</span>
+            <span style="font-weight: 700; color: #FFFFFF; font-size: 0.95rem;">${escapeHTML(c.username)}</span>
             <span style="background: rgba(255, 255, 255, 0.08); color: ${platformColor}; font-size: 0.75rem; padding: 2px 8px; border-radius: 4px; font-weight: 600;">${platformBadge}</span>
-            <span style="background: rgba(88, 101, 242, 0.15); color: var(--primary); font-size: 0.75rem; padding: 2px 8px; border-radius: 4px;">${channelName}</span>
+            <span style="background: rgba(88, 101, 242, 0.15); color: var(--primary); font-size: 0.75rem; padding: 2px 8px; border-radius: 4px;">${escapeHTML(channelName)}</span>
           </div>
-          <div style="color: var(--text-muted); font-size: 0.82rem;">${c.custom_message ? c.custom_message.slice(0, 100) : 'Mensagem padrão do sistema'}</div>
+          <div style="color: var(--text-muted); font-size: 0.82rem;">${escapeHTML(c.custom_message ? c.custom_message.slice(0, 100) : 'Mensagem padrão do sistema')}</div>
         </div>
 
         <div style="display: flex; gap: 8px; align-items: center;">
           <label style="margin: 0; font-size: 0.85rem; display: flex; align-items: center; gap: 6px; cursor: pointer;">
-            <input type="checkbox" ${c.enabled ? 'checked' : ''} onchange="toggleCreator('${c.id}', this.checked)" style="cursor: pointer;">
+            <input type="checkbox" ${c.enabled ? 'checked' : ''} onchange="toggleCreator('${escapeHTML(c.id)}', this.checked)" style="cursor: pointer;">
             <span>${c.enabled ? 'Ativo' : 'Pausado'}</span>
           </label>
-          <button type="button" class="btn btn-secondary" style="padding: 6px 12px; font-size: 0.8rem;" onclick="testCreator('${c.id}')" title="Testar Alerta">
+          <button type="button" class="btn btn-secondary" style="padding: 6px 12px; font-size: 0.8rem;" onclick="testCreator('${escapeHTML(c.id)}')" title="Testar Alerta">
             <i class="fa-solid fa-paper-plane"></i> Testar
           </button>
-          <button type="button" class="btn btn-danger" style="padding: 6px 10px; font-size: 0.8rem;" onclick="deleteCreator('${c.id}')" title="Excluir">
+          <button type="button" class="btn btn-danger" style="padding: 6px 10px; font-size: 0.8rem;" onclick="deleteCreator('${escapeHTML(c.id)}')" title="Excluir">
             <i class="fa-solid fa-trash"></i>
           </button>
         </div>
