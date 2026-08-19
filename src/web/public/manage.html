@@ -110,37 +110,107 @@
         <div id="tab-tickets" class="tab-content">
           <div class="card-panel">
             <div class="panel-header">
-              <h2><i class="fa-solid fa-ticket" style="color: var(--primary);"></i> Sistema de Tickets</h2>
-              <p>Configure o suporte privado com transcrições HTML completas.</p>
+              <h2><i class="fa-solid fa-ticket" style="color: var(--primary);"></i> Personalização Total de Tickets</h2>
+              <p>Configure canais, cargos e customize 100% do visual do painel de atendimento para este servidor.</p>
             </div>
+            
             <form id="form-tickets" onsubmit="saveTickets(event)">
-              <div class="form-group">
-                <label>📁 Categoria dos Tickets Abertos</label>
-                <select id="ticket-category" class="form-control"></select>
-                <div class="hint">Categoria do Discord onde as salas de atendimento serão criadas.</div>
-              </div>
+              
+              <!-- 1. CANAIS E CARGOS -->
+              <h3 style="font-size: 1.1rem; margin-bottom: 1rem; color: var(--primary); display: flex; align-items: center; gap: 8px;">
+                <i class="fa-solid fa-sliders"></i> 1. Estrutura de Salas & Staff
+              </h3>
 
-              <div class="form-group">
-                <label>👮 Cargo da Equipe de Suporte (Staff)</label>
-                <select id="ticket-staff-role" class="form-control"></select>
-                <div class="hint">Membros com este cargo terão acesso automático aos tickets.</div>
-              </div>
+              <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1rem; margin-bottom: 1.5rem;">
+                <div class="form-group" style="margin-bottom: 0;">
+                  <label>📁 Categoria dos Tickets Abertos</label>
+                  <select id="ticket-category" class="form-control"></select>
+                  <div class="hint">Onde as salas de suporte serão criadas.</div>
+                </div>
 
-              <div class="form-group">
-                <label>📜 Canal de Logs & Transcrições</label>
-                <select id="ticket-logs-channel" class="form-control"></select>
-                <div class="hint">Canal onde os relatórios HTML de encerramento serão postados.</div>
-              </div>
+                <div class="form-group" style="margin-bottom: 0;">
+                  <label>👮 Cargo da Equipe de Suporte (Staff)</label>
+                  <select id="ticket-staff-role" class="form-control"></select>
+                  <div class="hint">Quem terá permissão para ver os tickets.</div>
+                </div>
 
-              <div class="form-group" style="padding-top: 1rem; border-top: 1px solid var(--border-color);">
-                <label>📢 Enviar Painel Interativo no Canal</label>
-                <div style="display: flex; gap: 12px; margin-top: 8px;">
-                  <select id="ticket-panel-channel" class="form-control" style="flex: 1;"></select>
-                  <button type="button" class="btn btn-secondary" onclick="sendTicketPanel()"><i class="fa-solid fa-paper-plane"></i> Enviar Painel</button>
+                <div class="form-group" style="margin-bottom: 0;">
+                  <label>📜 Canal de Logs & Transcrições</label>
+                  <select id="ticket-logs-channel" class="form-control"></select>
+                  <div class="hint">Onde as transcrições web serão postadas.</div>
                 </div>
               </div>
 
-              <button type="submit" class="btn btn-success" style="margin-top: 1rem;"><i class="fa-solid fa-floppy-disk"></i> Salvar Configurações</button>
+              <!-- 2. PERSONALIZAÇÃO DO EMBED -->
+              <h3 style="font-size: 1.1rem; margin-top: 2rem; margin-bottom: 1rem; color: var(--primary); display: flex; align-items: center; gap: 8px;">
+                <i class="fa-solid fa-palette"></i> 2. Mensagem & Aparência do Painel
+              </h3>
+
+              <div class="form-group">
+                <label>📌 Título do Painel de Atendimento</label>
+                <input type="text" id="ticket-title" class="form-control" placeholder="🎫 Central de Atendimento" oninput="updateTicketPreview()">
+              </div>
+
+              <div class="form-group">
+                <label>📝 Descrição / Texto Informativo</label>
+                <textarea id="ticket-desc" class="form-control" rows="4" placeholder="Escreva a mensagem do painel..." oninput="updateTicketPreview()"></textarea>
+                <div class="hint">Você pode usar emojis e formatações como **negrito** e quebras de linha.</div>
+              </div>
+
+              <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 1rem; margin-bottom: 1.5rem;">
+                <div class="form-group" style="margin-bottom: 0;">
+                  <label>🎨 Cor da Borda do Embed (HEX)</label>
+                  <div style="display: flex; gap: 10px; align-items: center;">
+                    <input type="color" id="ticket-color-picker" value="#5865F2" style="width: 45px; height: 42px; padding: 2px; border: none; border-radius: 8px; background: transparent; cursor: pointer;" oninput="document.getElementById('ticket-color').value = this.value; updateTicketPreview();">
+                    <input type="text" id="ticket-color" class="form-control" value="#5865F2" placeholder="#5865F2" style="flex: 1;" oninput="document.getElementById('ticket-color-picker').value = this.value; updateTicketPreview();">
+                  </div>
+                </div>
+
+                <div class="form-group" style="margin-bottom: 0;">
+                  <label>🔘 Modo de Abertura</label>
+                  <select id="ticket-style" class="form-control" onchange="updateTicketPreview()">
+                    <option value="select">📜 Menu Suspenso (Select Menu)</option>
+                    <option value="buttons">🔘 Botões Coloridos (Buttons)</option>
+                  </select>
+                </div>
+
+                <div class="form-group" style="margin-bottom: 0; grid-column: 1 / -1;">
+                  <label>🖼️ URL da Imagem de Banner (Opcional)</label>
+                  <input type="url" id="ticket-banner" class="form-control" placeholder="https://exemplo.com/banner.png" oninput="updateTicketPreview()">
+                </div>
+              </div>
+
+              <!-- 3. GERENCIADOR DE CATEGORIAS / BOTÕES -->
+              <h3 style="font-size: 1.1rem; margin-top: 2rem; margin-bottom: 0.5rem; color: var(--primary); display: flex; align-items: center; justify-content: space-between;">
+                <span><i class="fa-solid fa-layer-group"></i> 3. Categorias de Atendimento (Opções)</span>
+                <button type="button" class="btn btn-secondary" style="font-size: 0.85rem; padding: 4px 12px;" onclick="addTicketCategoryRow()"><i class="fa-solid fa-plus"></i> Nova Opção</button>
+              </h3>
+              <p style="color: var(--text-muted); font-size: 0.85rem; margin-bottom: 1rem;">Defina os motivos que os membros podem selecionar para abrir ticket.</p>
+
+              <div id="ticket-categories-container" style="display: flex; flex-direction: column; gap: 10px; margin-bottom: 1.5rem;"></div>
+
+              <!-- 4. LIVE PREVIEW DO DISCORD -->
+              <h3 style="font-size: 1.1rem; margin-top: 2rem; margin-bottom: 1rem; color: var(--primary); display: flex; align-items: center; gap: 8px;">
+                <i class="fa-solid fa-eye"></i> 4. Pré-Visualização em Tempo Real (Discord Live Preview)
+              </h3>
+
+              <div class="discord-preview-container" style="background: #2B2D31; padding: 1.25rem; border-radius: 8px; max-width: 540px; border-left: 4px solid #5865F2; margin-bottom: 2rem;" id="discord-preview-box">
+                <div style="font-weight: 700; font-size: 1rem; color: #FFFFFF; margin-bottom: 8px;" id="preview-title">🎫 Central de Atendimento</div>
+                <div style="font-size: 0.9rem; color: #DBDEE1; white-space: pre-wrap; line-height: 1.4;" id="preview-desc">Selecione uma das opções abaixo para abrir um ticket privado.</div>
+                <img id="preview-image" src="" style="width: 100%; border-radius: 6px; margin-top: 10px; display: none;" alt="Banner Preview">
+                <div id="preview-components" style="margin-top: 12px;"></div>
+              </div>
+
+              <!-- 5. ENVIAR E SALVAR -->
+              <div class="form-group" style="padding-top: 1.5rem; border-top: 1px solid var(--border-color);">
+                <label>📢 Enviar este Painel Customizado no Canal</label>
+                <div style="display: flex; gap: 12px; margin-top: 8px;">
+                  <select id="ticket-panel-channel" class="form-control" style="flex: 1;"></select>
+                  <button type="button" class="btn btn-secondary" onclick="sendTicketPanel()"><i class="fa-solid fa-paper-plane"></i> Enviar Painel Agora</button>
+                </div>
+              </div>
+
+              <button type="submit" class="btn btn-success" style="margin-top: 1rem; padding: 0.75rem 1.5rem;"><i class="fa-solid fa-floppy-disk"></i> Salvar Todas as Configurações</button>
             </form>
           </div>
         </div>

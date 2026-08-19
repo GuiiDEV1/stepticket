@@ -117,6 +117,25 @@ async function loadServerData() {
     populateSelect('ticket-logs-channel', serverData.textChannels, serverData.config?.ticket_logs_id);
     populateSelect('ticket-panel-channel', serverData.textChannels, '', false);
 
+    // Campos Customizados de Ticket
+    document.getElementById('ticket-title').value = serverData.config?.ticket_title || '🎫 Central de Atendimento';
+    document.getElementById('ticket-desc').value = serverData.config?.ticket_description || 'Precisa de suporte, tirar dúvidas, fazer compras ou denunciar algo?\n\nSelecione uma das opções abaixo para abrir um ticket privado.';
+    document.getElementById('ticket-color').value = serverData.config?.ticket_color || '#5865F2';
+    document.getElementById('ticket-color-picker').value = serverData.config?.ticket_color || '#5865F2';
+    document.getElementById('ticket-style').value = serverData.config?.ticket_style || 'select';
+    document.getElementById('ticket-banner').value = serverData.config?.ticket_banner || '';
+
+    currentTicketCategories = Array.isArray(serverData.config?.ticket_categories) && serverData.config.ticket_categories.length > 0
+      ? JSON.parse(JSON.stringify(serverData.config.ticket_categories))
+      : [
+          { id: 'suporte', label: 'Suporte Geral', emoji: '🛠️', desc: 'Dúvidas e ajuda geral' },
+          { id: 'flags', label: 'FastFlags & Otimização', emoji: '⚡', desc: 'Ajuda com configurações e Roblox' },
+          { id: 'denuncia', label: 'Denúncias', emoji: '🚨', desc: 'Reportar usuários ou infrações' },
+          { id: 'compras', label: 'Compras & VIP', emoji: '🛒', desc: 'Assuntos comerciais e VIP' }
+        ];
+
+    renderTicketCategories();
+
     // Verification Tab
     document.getElementById('verify-enabled').checked = Boolean(serverData.verification?.enabled);
     document.getElementById('verify-type').value = serverData.verification?.type || 'captcha';
@@ -243,39 +262,122 @@ async function initCharts() {
 }
 
 // =========================================================================
+// GERENCIADOR DE CATEGORIAS DINÂMICAS & PREVIEW DE TICKETS
+// =========================================================================
+function renderTicketCategories() {
+  const container = document.getElementById('ticket-categories-container');
+  if (!container) return;
+
+  if (currentTicketCategories.length === 0) {
+    container.innerHTML = '<div style="color: var(--text-muted); font-size: 0.85rem; padding: 8px;">Nenhuma categoria adicionada. Clique em "Nova Opção" acima.</div>';
+    updateTicketPreview();
+    return;
+  }
+
+  container.innerHTML = currentTicketCategories.map((cat, index) => `
+    <div style="display: grid; grid-template-columns: 70px 180px 1fr 40px; gap: 8px; align-items: center; background: rgba(255,255,255,0.02); padding: 8px 12px; border-radius: 8px; border: 1px solid var(--border-color);">
+      <input type="text" class="form-control" value="${cat.emoji || ''}" placeholder="Emoji" style="padding: 6px 8px; text-align: center;" oninput="currentTicketCategories[${index}].emoji = this.value; updateTicketPreview();">
+      <input type="text" class="form-control" value="${cat.label || ''}" placeholder="Nome (ex: Compras)" style="padding: 6px 10px;" oninput="currentTicketCategories[${index}].label = this.value; updateTicketPreview();">
+      <input type="text" class="form-control" value="${cat.desc || ''}" placeholder="Descrição opcional" style="padding: 6px 10px;" oninput="currentTicketCategories[${index}].desc = this.value; updateTicketPreview();">
+      <button type="button" class="btn btn-danger" style="padding: 6px 8px; font-size: 0.75rem;" onclick="removeTicketCategory(${index})"><i class="fa-solid fa-trash"></i></button>
+    </div>
+  `).join('');
+
+  updateTicketPreview();
+}
+
+function addTicketCategoryRow() {
+  const newId = 'cat_' + Date.now().toString(36);
+  currentTicketCategories.push({
+    id: newId,
+    label: 'Nova Opção',
+    emoji: '📌',
+    desc: 'Descrição do atendimento'
+  });
+  renderTicketCategories();
+}
+
+function removeTicketCategory(index) {
+  currentTicketCategories.splice(index, 1);
+  renderTicketCategories();
+}
+
+function updateTicketPreview() {
+  const title = document.getElementById('ticket-title')?.value || '🎫 Central de Atendimento';
+  const desc = document.getElementById('ticket-desc')?.value || 'Selecione uma das opções abaixo para abrir um ticket privado.';
+  const color = document.getElementById('ticket-color')?.value || '#5865F2';
+  const banner = document.getElementById('ticket-banner')?.value || '';
+  const style = document.getElementById('ticket-style')?.value || 'select';
+
+  const previewBox = document.getElementById('discord-preview-box');
+  if (previewBox) {
+    previewBox.style.borderLeftColor = color;
+  }
+
+  const titleEl = document.getElementById('preview-title');
+  if (titleEl) titleEl.innerText = title;
+
+  const descEl = document.getElementById('preview-desc');
+  if (descEl) descEl.innerText = desc;
+
+  const imgEl = document.getElementById('preview-image');
+  if (imgEl) {
+    if (banner && banner.startsWith('http')) {
+      imgEl.src = banner;
+      imgEl.style.display = 'block';
+    } else {
+      imgEl.style.display = 'none';
+    }
+  }
+
+  const compEl = document.getElementById('preview-components');
+  if (compEl) {
+    if (style === 'buttons') {
+      compEl.innerHTML = `
+        <div style="display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px;">
+          ${currentTicketCategories.map(c => `
+            <div style="background: #5865F2; color: #FFFFFF; font-size: 0.85rem; font-weight: 500; padding: 6px 14px; border-radius: 4px; display: inline-flex; align-items: center; gap: 6px; cursor: default;">
+              <span>${c.emoji || ''}</span>
+              <span>${c.label || 'Opção'}</span>
+            </div>
+          `).join('')}
+        </div>
+      `;
+    } else {
+      compEl.innerHTML = `
+        <div style="background: #1E1F22; color: #949BA4; border: 1px solid #383A40; border-radius: 4px; padding: 8px 12px; font-size: 0.85rem; display: flex; justify-content: space-between; align-items: center; margin-top: 8px;">
+          <span>Selecione o motivo do atendimento...</span>
+          <i class="fa-solid fa-chevron-down" style="font-size: 0.75rem;"></i>
+        </div>
+      `;
+    }
+  }
+}
+
+// =========================================================================
 // SALVAR MÓDULOS
 // =========================================================================
 
-// 1. Tickets
-async function saveTickets(e) {
+// 1. Tickets (Salvar e Enviar Painel)
+async function saveTickets(e, sendPanel = false) {
   if (e) e.preventDefault();
-  const body = {
-    categoryId: document.getElementById('ticket-category').value,
-    staffRoleId: document.getElementById('ticket-staff-role').value,
-    logsChannelId: document.getElementById('ticket-logs-channel').value
-  };
-
-  const res = await fetch(`/api/guilds/${guildId}/tickets`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(body)
-  });
-
-  const data = await res.json();
-  if (data.success) showToast(data.message);
-  else showToast(data.error || 'Erro ao salvar', 'error');
-}
-
-async function sendTicketPanel() {
   const panelChannelId = document.getElementById('ticket-panel-channel').value;
-  if (!panelChannelId) return showToast('Selecione um canal para enviar o painel.', 'error');
+  if (sendPanel && !panelChannelId) {
+    return showToast('Selecione um canal para enviar o painel.', 'error');
+  }
 
   const body = {
     categoryId: document.getElementById('ticket-category').value,
     staffRoleId: document.getElementById('ticket-staff-role').value,
     logsChannelId: document.getElementById('ticket-logs-channel').value,
-    sendPanel: true,
-    panelChannelId
+    ticketTitle: document.getElementById('ticket-title').value,
+    ticketDescription: document.getElementById('ticket-desc').value,
+    ticketColor: document.getElementById('ticket-color').value,
+    ticketBanner: document.getElementById('ticket-banner').value,
+    ticketStyle: document.getElementById('ticket-style').value,
+    ticketCategories: currentTicketCategories,
+    sendPanel,
+    panelChannelId: sendPanel ? panelChannelId : undefined
   };
 
   const res = await fetch(`/api/guilds/${guildId}/tickets`, {
@@ -285,8 +387,15 @@ async function sendTicketPanel() {
   });
 
   const data = await res.json();
-  if (data.success) showToast('Painel de Tickets enviado com sucesso no canal!');
-  else showToast(data.error || 'Erro ao enviar painel', 'error');
+  if (data.success) {
+    showToast(sendPanel ? 'Painel customizado enviado com sucesso no canal!' : data.message);
+  } else {
+    showToast(data.error || 'Erro ao salvar', 'error');
+  }
+}
+
+function sendTicketPanel() {
+  saveTickets(null, true);
 }
 
 // 2. Verificação

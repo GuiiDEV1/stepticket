@@ -21,11 +21,36 @@ const DatabaseManager = {
         automod_antilink: 0,
         automod_antiinvite: 0,
         automod_antispam: 0,
-        automod_antimassmention: 0
+        automod_antimassmention: 0,
+        ticket_title: '🎫 Central de Atendimento',
+        ticket_description: 'Precisa de suporte, tirar dúvidas, fazer compras ou denunciar algo?\n\nSelecione uma das opções abaixo para abrir um ticket privado.',
+        ticket_color: '#5865F2',
+        ticket_banner: null,
+        ticket_style: 'select',
+        ticket_categories: [
+          { id: 'suporte', label: 'Suporte Geral', emoji: '🛠️', desc: 'Dúvidas e ajuda geral' },
+          { id: 'flags', label: 'FastFlags & Otimização', emoji: '⚡', desc: 'Ajuda com configurações e Roblox' },
+          { id: 'denuncia', label: 'Denúncias', emoji: '🚨', desc: 'Reportar usuários ou infrações' },
+          { id: 'compras', label: 'Compras & VIP', emoji: '🛒', desc: 'Assuntos comerciais e VIP' }
+        ]
       };
       saveToDisk();
     }
-    return store.guild_config[guildId];
+
+    const cfg = store.guild_config[guildId];
+    if (!cfg.ticket_title) cfg.ticket_title = '🎫 Central de Atendimento';
+    if (!cfg.ticket_description) cfg.ticket_description = 'Precisa de suporte, tirar dúvidas, fazer compras ou denunciar algo?\n\nSelecione uma das opções abaixo para abrir um ticket privado.';
+    if (!cfg.ticket_color) cfg.ticket_color = '#5865F2';
+    if (!cfg.ticket_style) cfg.ticket_style = 'select';
+    if (!Array.isArray(cfg.ticket_categories) || cfg.ticket_categories.length === 0) {
+      cfg.ticket_categories = [
+        { id: 'suporte', label: 'Suporte Geral', emoji: '🛠️', desc: 'Dúvidas e ajuda geral' },
+        { id: 'flags', label: 'FastFlags & Otimização', emoji: '⚡', desc: 'Ajuda com configurações e Roblox' },
+        { id: 'denuncia', label: 'Denúncias', emoji: '🚨', desc: 'Reportar usuários ou infrações' },
+        { id: 'compras', label: 'Compras & VIP', emoji: '🛒', desc: 'Assuntos comerciais e VIP' }
+      ];
+    }
+    return cfg;
   },
 
   updateConfig(guildId, updates) {

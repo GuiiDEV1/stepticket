@@ -180,53 +180,112 @@ function createApiRouter(client) {
   // 4. ATUALIZAÇÃO DO MÓDULO DE TICKETS
   // =========================================================================
   router.post('/guilds/:guildId/tickets', requireAuth, requireGuildAdmin(client), async (req, res) => {
-    const { categoryId, staffRoleId, logsChannelId, sendPanel, panelChannelId } = req.body;
+    const {
+      categoryId,
+      staffRoleId,
+      logsChannelId,
+      ticketTitle,
+      ticketDescription,
+      ticketColor,
+      ticketBanner,
+      ticketStyle,
+      ticketCategories,
+      sendPanel,
+      panelChannelId
+    } = req.body;
+
     const botGuild = req.botGuild;
     const guildId = req.targetGuildId;
 
-    DatabaseManager.updateConfig(guildId, {
+    const updates = {
       ticket_category_id: categoryId || null,
       ticket_staff_role_id: staffRoleId || null,
       ticket_logs_id: logsChannelId || null
-    });
+    };
+
+    if (ticketTitle !== undefined) updates.ticket_title = ticketTitle;
+    if (ticketDescription !== undefined) updates.ticket_description = ticketDescription;
+    if (ticketColor !== undefined) updates.ticket_color = ticketColor;
+    if (ticketBanner !== undefined) updates.ticket_banner = ticketBanner;
+    if (ticketStyle !== undefined) updates.ticket_style = ticketStyle;
+    if (Array.isArray(ticketCategories)) updates.ticket_categories = ticketCategories;
+
+    DatabaseManager.updateConfig(guildId, updates);
+    const updatedConfig = DatabaseManager.getConfig(guildId);
 
     if (sendPanel && panelChannelId) {
       const channel = botGuild.channels.cache.get(panelChannelId);
       if (channel && channel.isTextBased()) {
         try {
+          // Converte cor HEX para número
+          let embedColor = COLORS.TICKET;
+          if (updatedConfig.ticket_color) {
+            const cleanHex = updatedConfig.ticket_color.replace('#', '');
+            const parsed = parseInt(cleanHex, 16);
+            if (!isNaN(parsed)) embedColor = parsed;
+          }
+
           const panelEmbed = createEmbed({
-            title: `🎫 Central de Atendimento • ${botGuild.name}`,
-            description: 'Precisa de suporte, tirar dúvidas, fazer compras ou denunciar algo?\n\n' +
-              'Selecione uma das opções no menu abaixo para abrir um **ticket de atendimento privado** com a nossa equipe.\n\n' +
-              '📌 **Categorias de Atendimento:**\n' +
-              '• 🛠️ **Suporte Geral & Dúvidas:** Ajuda com o servidor ou ferramentas.\n' +
-              '• ⚡ **FastFlags & Otimização:** Ajuda com configurações e Roblox.\n' +
-              '• 🚨 **Denúncias:** Reporte de conduta inadequada de membros.\n' +
-              '• 🛒 **Compras & Parcerias:** Informações comerciais.',
-            color: COLORS.TICKET,
-            thumbnail: botGuild.iconURL({ dynamic: true })
+            title: updatedConfig.ticket_title || `🎫 Central de Atendimento • ${botGuild.name}`,
+            description: updatedConfig.ticket_description || 'Selecione uma das opções abaixo para abrir um ticket de atendimento privado.',
+            color: embedColor,
+            thumbnail: botGuild.iconURL({ dynamic: true }),
+            image: updatedConfig.ticket_banner || undefined
           });
 
-          const selectMenu = new ActionRowBuilder().addComponents(
-            new StringSelectMenuBuilder()
+          const categories = Array.isArray(updatedConfig.ticket_categories) && updatedConfig.ticket_categories.length > 0
+            ? updatedConfig.ticket_categories
+            : [
+                { id: 'suporte', label: 'Suporte Geral', emoji: '🛠️', desc: 'Dúvidas e ajuda geral' },
+                { id: 'flags', label: 'FastFlags & Otimização', emoji: '⚡', desc: 'Ajuda com configurações e Roblox' },
+                { id: 'denuncia', label: 'Denúncias', emoji: '🚨', desc: 'Reportar usuários ou infrações' },
+                { id: 'compras', label: 'Compras & VIP', emoji: '🛒', desc: 'Assuntos comerciais e VIP' }
+              ];
+
+          const rows = [];
+
+          if (updatedConfig.ticket_style === 'buttons') {
+            // Estilo Botões (máximo 5 botões por fileira)
+            let currentRow = new ActionRowBuilder();
+            categories.forEach((cat, index) => {
+              const btn = new ButtonBuilder()
+                .setCustomId(`ticket_btn_cat_${cat.id}`)
+                .setLabel(cat.label)
+                .setStyle(ButtonStyle.Primary);
+              if (cat.emoji) btn.setEmoji(cat.emoji);
+
+              currentRow.addComponents(btn);
+
+              if (currentRow.components.length === 5 || index === categories.length - 1) {
+                rows.push(currentRow);
+                currentRow = new ActionRowBuilder();
+              }
+            });
+          } else {
+            // Estilo Select Menu
+            const selectMenu = new StringSelectMenuBuilder()
               .setCustomId('ticket_create_select')
               .setPlaceholder('Selecione o motivo do atendimento...')
-              .addOptions([
-                { label: 'Suporte Geral', description: 'Dúvidas e ajuda geral', emoji: '🛠️', value: 'suporte' },
-                { label: 'FastFlags & Otimização', description: 'Ajuda com flags e Roblox', emoji: '⚡', value: 'flags' },
-                { label: 'Denúncia', description: 'Denunciar usuários ou infrações', emoji: '🚨', value: 'denuncia' },
-                { label: 'Compras & Parcerias', description: 'Assuntos comerciais e VIP', emoji: '🛒', value: 'compras' }
-              ])
-          );
+              .addOptions(
+                categories.map(cat => ({
+                  label: cat.label.slice(0, 100),
+                  description: (cat.desc || '').slice(0, 100) || undefined,
+                  emoji: cat.emoji || undefined,
+                  value: cat.id
+                }))
+              );
+            rows.push(new ActionRowBuilder().addComponents(selectMenu));
+          }
 
-          await channel.send({ embeds: [panelEmbed], components: [selectMenu] });
+          await channel.send({ embeds: [panelEmbed], components: rows });
         } catch (err) {
-          console.error('Erro ao enviar painel de ticket via web:', err);
+          console.error('Erro ao enviar painel de ticket customizado via web:', err);
+          return res.status(500).json({ error: 'Erro ao enviar painel no canal do Discord: ' + err.message });
         }
       }
     }
 
-    res.json({ success: true, message: 'Configurações de tickets salvas com sucesso!' });
+    res.json({ success: true, message: 'Configurações do ticket salvas com sucesso!' });
   });
 
   // =========================================================================

@@ -16,14 +16,14 @@ module.exports = {
   name: 'interactionCreate',
   async execute(interaction, client) {
     // 1. SELECT MENU / BOTÕES DE CRIAÇÃO DE TICKET
-    if (interaction.isStringSelectMenu() && interaction.customId === 'ticket_category_select') {
+    if (interaction.isStringSelectMenu() && (interaction.customId === 'ticket_category_select' || interaction.customId === 'ticket_create_select')) {
       const category = interaction.values[0];
       await handleTicketCreate(interaction, category);
       return;
     }
 
-    if (interaction.isButton() && interaction.customId.startsWith('ticket_open_')) {
-      const category = interaction.customId.replace('ticket_open_', '');
+    if (interaction.isButton() && (interaction.customId.startsWith('ticket_open_') || interaction.customId.startsWith('ticket_btn_cat_'))) {
+      const category = interaction.customId.replace('ticket_open_', '').replace('ticket_btn_cat_', '');
       await handleTicketCreate(interaction, category);
       return;
     }
@@ -243,15 +243,19 @@ async function handleTicketCreate(interaction, category) {
   await interaction.deferReply({ ephemeral: true });
 
   const config = DatabaseManager.getConfig(guild.id);
+  const foundCustomCat = (config.ticket_categories || []).find(c => c.id.toLowerCase() === category.toLowerCase());
   const categoryNames = {
     suporte: 'Suporte Geral',
     denuncia: 'Denúncias',
     duvida: 'Dúvidas',
-    compras: 'Compras & Parcerias',
+    flags: 'FastFlags & Otimização',
+    compras: 'Compras & VIP',
     geral: 'Atendimento Geral'
   };
 
-  const selectedCategoryName = categoryNames[category.toLowerCase()] || category;
+  const selectedCategoryName = foundCustomCat 
+    ? `${foundCustomCat.emoji ? foundCustomCat.emoji + ' ' : ''}${foundCustomCat.label}` 
+    : (categoryNames[category.toLowerCase()] || category);
 
   // Montar permissões do canal
   const permissionOverwrites = [
