@@ -1,0 +1,347 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Gerenciar Servidor - StepTicket Dashboard</title>
+  <link rel="stylesheet" href="/style.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+
+  <!-- NAVBAR -->
+  <header class="navbar">
+    <a href="/dashboard" class="nav-brand">
+      <img id="guild-icon-header" src="https://cdn.discordapp.com/embed/avatars/0.png" alt="Guild Icon">
+      <span id="guild-name-header">Carregando Servidor...</span>
+    </a>
+    <div class="nav-user">
+      <a href="/dashboard" class="btn btn-secondary"><i class="fa-solid fa-arrow-left"></i> Trocar Servidor</a>
+      <div class="user-badge">
+        <img id="user-avatar" src="https://cdn.discordapp.com/embed/avatars/0.png" alt="Avatar">
+        <span id="user-name">-</span>
+      </div>
+    </div>
+  </header>
+
+  <!-- MAIN CONTAINER -->
+  <main class="container">
+    <div class="manage-layout">
+
+      <!-- SIDEBAR -->
+      <aside class="sidebar">
+        <button class="tab-btn active" onclick="switchTab('tab-overview')">
+          <i class="fa-solid fa-chart-pie"></i> Visão Geral
+        </button>
+        <button class="tab-btn" onclick="switchTab('tab-tickets')">
+          <i class="fa-solid fa-ticket"></i> Tickets & Atendimento
+        </button>
+        <button class="tab-btn" onclick="switchTab('tab-verify')">
+          <i class="fa-solid fa-shield-halved"></i> Verificação (Captcha)
+        </button>
+        <button class="tab-btn" onclick="switchTab('tab-roblox')">
+          <i class="fa-solid fa-gamepad"></i> Roblox Tracker
+        </button>
+        <button class="tab-btn" onclick="switchTab('tab-shop')">
+          <i class="fa-solid fa-store"></i> Loja da Economia
+        </button>
+        <button class="tab-btn" onclick="switchTab('tab-automod')">
+          <i class="fa-solid fa-robot"></i> Auto-Moderação
+        </button>
+        <button class="tab-btn" onclick="switchTab('tab-welcome')">
+          <i class="fa-solid fa-hand-wave"></i> Boas-Vindas & Logs
+        </button>
+      </aside>
+
+      <!-- CONTENT PANELS -->
+      <section class="content-area">
+
+        <!-- TAB 1: VISÃO GERAL -->
+        <div id="tab-overview" class="tab-content active">
+          <div class="card-panel">
+            <div class="panel-header">
+              <h2><i class="fa-solid fa-chart-pie" style="color: var(--primary);"></i> Visão Geral do Servidor</h2>
+              <p>Informações e resumo dos módulos ativos nesta comunidade.</p>
+            </div>
+            <div class="stats-grid" style="margin-top: 0;">
+              <div class="stat-card">
+                <div class="stat-icon" style="color: var(--success);"><i class="fa-solid fa-users"></i></div>
+                <div class="stat-value" id="ov-members">-</div>
+                <div class="stat-label">Membros</div>
+              </div>
+              <div class="stat-card">
+                <div class="stat-icon" style="color: var(--primary);"><i class="fa-solid fa-hashtag"></i></div>
+                <div class="stat-value" id="ov-channels">-</div>
+                <div class="stat-label">Canais de Texto</div>
+              </div>
+              <div class="stat-card">
+                <div class="stat-icon" style="color: var(--warning);"><i class="fa-solid fa-id-badge"></i></div>
+                <div class="stat-value" id="ov-roles">-</div>
+                <div class="stat-label">Cargos Criados</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- TAB 2: TICKETS -->
+        <div id="tab-tickets" class="tab-content">
+          <div class="card-panel">
+            <div class="panel-header">
+              <h2><i class="fa-solid fa-ticket" style="color: var(--primary);"></i> Sistema de Tickets</h2>
+              <p>Configure o suporte privado com transcrições HTML completas.</p>
+            </div>
+            <form id="form-tickets" onsubmit="saveTickets(event)">
+              <div class="form-group">
+                <label>📁 Categoria dos Tickets Abertos</label>
+                <select id="ticket-category" class="form-control"></select>
+                <div class="hint">Categoria do Discord onde as salas de atendimento serão criadas.</div>
+              </div>
+
+              <div class="form-group">
+                <label>👮 Cargo da Equipe de Suporte (Staff)</label>
+                <select id="ticket-staff-role" class="form-control"></select>
+                <div class="hint">Membros com este cargo terão acesso automático aos tickets.</div>
+              </div>
+
+              <div class="form-group">
+                <label>📜 Canal de Logs & Transcrições</label>
+                <select id="ticket-logs-channel" class="form-control"></select>
+                <div class="hint">Canal onde os relatórios HTML de encerramento serão postados.</div>
+              </div>
+
+              <div class="form-group" style="padding-top: 1rem; border-top: 1px solid var(--border-color);">
+                <label>📢 Enviar Painel Interativo no Canal</label>
+                <div style="display: flex; gap: 12px; margin-top: 8px;">
+                  <select id="ticket-panel-channel" class="form-control" style="flex: 1;"></select>
+                  <button type="button" class="btn btn-secondary" onclick="sendTicketPanel()"><i class="fa-solid fa-paper-plane"></i> Enviar Painel</button>
+                </div>
+              </div>
+
+              <button type="submit" class="btn btn-success" style="margin-top: 1rem;"><i class="fa-solid fa-floppy-disk"></i> Salvar Configurações</button>
+            </form>
+          </div>
+        </div>
+
+        <!-- TAB 3: VERIFICAÇÃO / CAPTCHA -->
+        <div id="tab-verify" class="tab-content">
+          <div class="card-panel">
+            <div class="panel-header">
+              <h2><i class="fa-solid fa-shield-halved" style="color: var(--success);"></i> Verificação Anti-Bot & Captcha</h2>
+              <p>Proteja seu servidor contra invasões com Captcha Canvas em tempo real.</p>
+            </div>
+            <form id="form-verify" onsubmit="saveVerification(event)">
+              <div class="toggle-item">
+                <div class="info">
+                  <h4>Ativar Sistema de Verificação</h4>
+                  <p>Exige que novos membros concluam a verificação antes de falar.</p>
+                </div>
+                <label class="switch">
+                  <input type="checkbox" id="verify-enabled">
+                  <span class="slider"></span>
+                </label>
+              </div>
+
+              <div class="form-group">
+                <label>🧩 Método de Verificação</label>
+                <select id="verify-type" class="form-control">
+                  <option value="captcha">🧩 Imagem Captcha Distorcida em Canvas (Mais Seguro)</option>
+                  <option value="button">🔘 Botão Direto (1 Clique)</option>
+                </select>
+              </div>
+
+              <div class="form-group">
+                <label>👥 Cargo Entregue após Verificação</label>
+                <select id="verify-role" class="form-control"></select>
+              </div>
+
+              <div class="form-group">
+                <label>📢 Canal do Painel de Verificação</label>
+                <select id="verify-channel" class="form-control"></select>
+              </div>
+
+              <div style="display: flex; gap: 12px; margin-top: 1.5rem;">
+                <button type="submit" class="btn btn-success"><i class="fa-solid fa-floppy-disk"></i> Salvar Alterações</button>
+                <button type="button" class="btn btn-secondary" onclick="sendVerifyPanel()"><i class="fa-solid fa-paper-plane"></i> Enviar Painel Agora</button>
+              </div>
+            </form>
+          </div>
+        </div>
+
+        <!-- TAB 4: ROBLOX TRACKER -->
+        <div id="tab-roblox" class="tab-content">
+          <div class="card-panel">
+            <div class="panel-header">
+              <h2><i class="fa-solid fa-gamepad" style="color: var(--warning);"></i> Rastreador de Atualizações do Roblox</h2>
+              <p>Alertas automáticos no Discord sempre que um novo deploy do Roblox for lançado.</p>
+            </div>
+            <form id="form-roblox" onsubmit="saveRoblox(event)">
+              <div class="form-group">
+                <label>📡 Canal de Notificações</label>
+                <select id="roblox-channel" class="form-control"></select>
+                <div class="hint">Onde o bot anunciará as novas versões e hashes do Roblox Player.</div>
+              </div>
+
+              <div class="form-group">
+                <label>🔔 Cargo para Mencionar (Ping)</label>
+                <select id="roblox-ping-role" class="form-control"></select>
+                <div class="hint">Opcional: Cargo que será mencionado quando sair uma nova versão.</div>
+              </div>
+
+              <div style="display: flex; gap: 12px; margin-top: 1.5rem;">
+                <button type="submit" class="btn btn-success"><i class="fa-solid fa-floppy-disk"></i> Salvar Rastreador</button>
+                <button type="button" class="btn btn-secondary" onclick="testRobloxAlert()"><i class="fa-solid fa-vial"></i> Testar Alerta no Canal</button>
+              </div>
+            </form>
+          </div>
+        </div>
+
+        <!-- TAB 5: LOJA DA ECONOMIA -->
+        <div id="tab-shop" class="tab-content">
+          <div class="card-panel">
+            <div class="panel-header">
+              <h2><i class="fa-solid fa-store" style="color: var(--primary);"></i> Loja de Cargos da Economia</h2>
+              <p>Cadastre cargos que os membros podem comprar usando Coins ganhos no /daily e /work.</p>
+            </div>
+
+            <!-- ADICIONAR ITEM -->
+            <form id="form-add-shop" onsubmit="addShopItem(event)" style="background: rgba(255,255,255,0.02); padding: 1.5rem; border-radius: 8px; border: 1px solid var(--border-color); margin-bottom: 1.5rem;">
+              <h4 style="margin-bottom: 1rem;">➕ Cadastrar Novo Cargo à Venda</h4>
+              <div style="display: grid; grid-template-columns: 1fr 150px; gap: 12px; margin-bottom: 12px;">
+                <div>
+                  <label style="font-size: 0.85rem;">Cargo</label>
+                  <select id="shop-role" class="form-control"></select>
+                </div>
+                <div>
+                  <label style="font-size: 0.85rem;">Preço (Coins)</label>
+                  <input type="number" id="shop-price" class="form-control" placeholder="1000" min="1" required>
+                </div>
+              </div>
+              <div class="form-group" style="margin-bottom: 1rem;">
+                <label style="font-size: 0.85rem;">Descrição</label>
+                <input type="text" id="shop-desc" class="form-control" placeholder="Ex: Cargo VIP exclusivo com canal especial">
+              </div>
+              <button type="submit" class="btn btn-primary"><i class="fa-solid fa-plus"></i> Adicionar Cargo</button>
+            </form>
+
+            <!-- TABELA DE ITENS -->
+            <div class="table-container">
+              <table>
+                <thead>
+                  <tr>
+                    <th>ID</th>
+                    <th>Cargo</th>
+                    <th>Preço</th>
+                    <th>Descrição</th>
+                    <th>Ações</th>
+                  </tr>
+                </thead>
+                <tbody id="shop-items-table">
+                  <tr><td colspan="5" style="text-align: center; color: var(--text-muted);">Nenhum item cadastrado.</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- TAB 6: AUTOMOD -->
+        <div id="tab-automod" class="tab-content">
+          <div class="card-panel">
+            <div class="panel-header">
+              <h2><i class="fa-solid fa-robot" style="color: var(--danger);"></i> Auto-Moderação em Tempo Real</h2>
+              <p>Filtros automáticos contra invasões, spam e links não autorizados.</p>
+            </div>
+            <form id="form-automod" onsubmit="saveAutoMod(event)">
+              <div class="toggle-item">
+                <div class="info">
+                  <h4>🚫 Anti-Invite</h4>
+                  <p>Deleta automaticamente convites de outros servidores de Discord postados no chat.</p>
+                </div>
+                <label class="switch">
+                  <input type="checkbox" id="am-invite">
+                  <span class="slider"></span>
+                </label>
+              </div>
+
+              <div class="toggle-item">
+                <div class="info">
+                  <h4>🔗 Anti-Links</h4>
+                  <p>Bloqueia links externos enviados por membros comuns.</p>
+                </div>
+                <label class="switch">
+                  <input type="checkbox" id="am-links">
+                  <span class="slider"></span>
+                </label>
+              </div>
+
+              <div class="toggle-item">
+                <div class="info">
+                  <h4>⚡ Anti-Spam</h4>
+                  <p>Pune membros que enviarem muitas mensagens repetidas rapidamente.</p>
+                </div>
+                <label class="switch">
+                  <input type="checkbox" id="am-spam">
+                  <span class="slider"></span>
+                </label>
+              </div>
+
+              <div class="toggle-item">
+                <div class="info">
+                  <h4>📢 Anti-Mass-Mention</h4>
+                  <p>Bloqueia mensagens com múltiplas menções excessivas de membros.</p>
+                </div>
+                <label class="switch">
+                  <input type="checkbox" id="am-mention">
+                  <span class="slider"></span>
+                </label>
+              </div>
+
+              <button type="submit" class="btn btn-success" style="margin-top: 1rem;"><i class="fa-solid fa-floppy-disk"></i> Salvar Proteções</button>
+            </form>
+          </div>
+        </div>
+
+        <!-- TAB 7: BOAS-VINDAS & LOGS -->
+        <div id="tab-welcome" class="tab-content">
+          <div class="card-panel">
+            <div class="panel-header">
+              <h2><i class="fa-solid fa-hand-wave" style="color: var(--primary);"></i> Boas-Vindas & Logs de Auditoria</h2>
+              <p>Recepção de novos membros e canais de registro de ações administrativas.</p>
+            </div>
+            <form id="form-general" onsubmit="saveGeneral(event)">
+              <div class="form-group">
+                <label>👋 Canal de Boas-Vindas</label>
+                <select id="welcome-channel" class="form-control"></select>
+              </div>
+
+              <div class="form-group">
+                <label>📝 Mensagem de Boas-Vindas</label>
+                <textarea id="welcome-msg" class="form-control" rows="3" placeholder="Seja bem-vindo(a) ao {guild}, {user}!"></textarea>
+                <div class="hint">Use <code>{user}</code> para marcar o membro e <code>{guild}</code> para o nome do servidor.</div>
+              </div>
+
+              <div class="form-group">
+                <label>🛡️ Canal de Logs de Moderação & Auditoria</label>
+                <select id="logs-channel" class="form-control"></select>
+                <div class="hint">Onde bans, kicks, mutes, warns e limpezas são registrados.</div>
+              </div>
+
+              <div class="form-group">
+                <label>💡 Canal de Sugestões</label>
+                <select id="suggestions-channel" class="form-control"></select>
+              </div>
+
+              <button type="submit" class="btn btn-success" style="margin-top: 1rem;"><i class="fa-solid fa-floppy-disk"></i> Salvar Configurações</button>
+            </form>
+          </div>
+        </div>
+
+      </section>
+    </div>
+  </main>
+
+  <!-- TOAST CONTAINER -->
+  <div class="toast-container" id="toast-container"></div>
+
+  <script src="/app.js"></script>
+</body>
+</html>

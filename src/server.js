@@ -1,35 +1,132 @@
 const express = require('express');
+const path = require('path');
+const {
+  CLIENT_ID,
+  CLIENT_SECRET,
+  exchangeCodeForToken,
+  fetchUserProfile,
+  fetchUserGuilds,
+  createSession,
+  verifySession
+} = require('./web/auth.js');
+const { createApiRouter } = require('./web/routes/api.js');
 
 function startServer(client) {
   const app = express();
   const PORT = process.env.PORT || 3000;
 
-  app.get('/', (req, res) => {
-    res.status(200).json({
-      status: 'online',
-      message: 'StepTicket Bot está operando normalmente!',
-      bot: client.user ? client.user.tag : 'Iniciando...',
-      ping: `${client.ws.ping}ms`,
-      uptime: `${Math.floor(process.uptime())}s`,
-      guilds: client.guilds.cache.size,
-      users: client.users.cache.size
+  // Middlewares essenciais
+  app.use(express.json());
+  app.use(express.urlencoded({ extended: true }));
+  app.use(express.static(path.join(__dirname, 'web', 'public')));
+
+  // =========================================================================
+  // ROTAS DE AUTENTICAÇÃO DISCORD OAUTH2
+  // =========================================================================
+  app.get('/auth/login', (req, res) => {
+    const host = req.get('host');
+    const protocol = req.protocol === 'https' || req.get('x-forwarded-proto') === 'https' ? 'https' : 'http';
+    const redirectUri = `${protocol}://${host}/auth/callback`;
+
+    const authUrl = `https://discord.com/oauth2/authorize?client_id=${CLIENT_ID}&response_type=code&scope=identify+guilds&redirect_uri=${encodeURIComponent(redirectUri)}`;
+    res.redirect(authUrl);
+  });
+
+  app.get('/auth/callback', async (req, res) => {
+    const code = req.query.code;
+    if (!code) {
+      return res.redirect('/?error=no_code');
+    }
+
+    const host = req.get('host');
+    const protocol = req.protocol === 'https' || req.get('x-forwarded-proto') === 'https' ? 'https' : 'http';
+    const redirectUri = `${protocol}://${host}/auth/callback`;
+
+    try {
+      // Troca o código pelo access_token
+      const tokenData = await exchangeCodeForToken(code, redirectUri);
+      const user = await fetchUserProfile(tokenData.access_token);
+      const guilds = await fetchUserGuilds(tokenData.access_token);
+
+      // Cria a sessão assinada
+      const { signedCookie } = createSession(user, guilds);
+
+      res.setHeader('Set-Cookie', `stepticket_session=${signedCookie}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${60 * 60 * 24 * 7}`);
+      return res.redirect('/dashboard');
+    } catch (err) {
+      console.error('Erro na autenticação OAuth2:', err.message);
+      return res.redirect('/?error=auth_failed');
+    }
+  });
+
+  app.get('/auth/logout', (req, res) => {
+    res.setHeader('Set-Cookie', 'stepticket_session=; Path=/; HttpOnly; Max-Age=0');
+    return res.redirect('/');
+  });
+
+  app.get('/auth/me', (req, res) => {
+    const cookieHeader = req.headers.cookie;
+    if (!cookieHeader) return res.json({ authenticated: false });
+
+    const cookies = Object.fromEntries(
+      cookieHeader.split('; ').map(c => {
+        const [k, ...v] = c.split('=');
+        return [k, decodeURIComponent(v.join('='))];
+      })
+    );
+
+    const session = verifySession(cookies.stepticket_session);
+    if (!session) return res.json({ authenticated: false });
+
+    return res.json({
+      authenticated: true,
+      user: {
+        id: session.user.id,
+        username: session.user.username,
+        global_name: session.user.global_name || session.user.username,
+        avatar: session.user.avatar
+          ? `https://cdn.discordapp.com/avatars/${session.user.id}/${session.user.avatar}.png?size=256`
+          : 'https://cdn.discordapp.com/embed/avatars/0.png'
+      }
     });
   });
 
+  // =========================================================================
+  // ROTAS DA REST API
+  // =========================================================================
+  app.use('/api', createApiRouter(client));
+
+  // =========================================================================
+  // ROTAS DE PÁGINAS HTML (FRONTEND)
+  // =========================================================================
+  app.get('/', (req, res) => {
+    res.sendFile(path.join(__dirname, 'web', 'public', 'index.html'));
+  });
+
+  app.get('/dashboard', (req, res) => {
+    res.sendFile(path.join(__dirname, 'web', 'public', 'dashboard.html'));
+  });
+
+  app.get('/dashboard/:guildId', (req, res) => {
+    res.sendFile(path.join(__dirname, 'web', 'public', 'manage.html'));
+  });
+
+  // Healthcheck / Ping
   app.get('/ping', (req, res) => {
     res.status(200).send('pong');
   });
 
+  // Inicialização do servidor
   try {
     const server = app.listen(PORT, () => {
-      console.log(`🌐 Servidor Keep-Alive rodando com sucesso na porta ${PORT}`);
+      console.log(`🌐 Painel Web & API Dashboard rodando com sucesso em http://localhost:${PORT}`);
     });
 
     server.on('error', (err) => {
       if (err.code === 'EADDRINUSE') {
-        console.warn(`[AVISO] Porta ${PORT} em uso. Servidor Keep-Alive continuará em segundo plano.`);
+        console.warn(`[AVISO] Porta ${PORT} em uso. O servidor web continuará funcionando.`);
       } else {
-        console.error('Erro no servidor web Keep-Alive:', err.message);
+        console.error('Erro no servidor web:', err.message);
       }
     });
 

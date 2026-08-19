@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>StepTicket & Luqqzstrap Bot - Painel Oficial</title>
+  <link rel="stylesheet" href="/style.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+
+  <!-- NAVBAR -->
+  <header class="navbar">
+    <a href="/" class="nav-brand">
+      <img id="bot-avatar" src="https://cdn.discordapp.com/embed/avatars/0.png" alt="Bot Logo">
+      <span id="bot-name">StepTicket Bot</span>
+    </a>
+    <div class="nav-user" id="nav-auth-section">
+      <a href="/auth/login" class="btn btn-primary"><i class="fa-brands fa-discord"></i> Entrar com Discord</a>
+    </div>
+  </header>
+
+  <!-- HERO SECTION -->
+  <main class="container">
+    <section class="hero">
+      <div class="hero-badge">
+        <i class="fa-solid fa-bolt"></i> Sistema Avançado de Tickets, FastFlags & Roblox
+      </div>
+      <h1>Gerencie seu Servidor com o Painel Mais Rápido do Discord</h1>
+      <p>Configure tickets com transcrições em HTML, verificação por Captcha visual, rastreador de versões do Roblox, economia completa, auto-moderação e alertas de YouTube em uma única interface moderna.</p>
+
+      <div class="hero-actions">
+        <a href="/auth/login" class="btn btn-primary" style="padding: 0.85rem 1.85rem; font-size: 1.05rem;">
+          <i class="fa-solid fa-sliders"></i> Acessar Painel Web
+        </a>
+        <a id="invite-btn" href="https://discord.com/oauth2/authorize?client_id=1538556104924070050&permissions=8&integration_type=0&scope=bot+applications.commands" target="_blank" class="btn btn-secondary" style="padding: 0.85rem 1.85rem; font-size: 1.05rem;">
+          <i class="fa-solid fa-plus"></i> Adicionar ao Discord
+        </a>
+      </div>
+
+      <!-- LIVE STATS -->
+      <div class="stats-grid">
+        <div class="stat-card">
+          <div class="stat-icon" style="color: #5865F2;"><i class="fa-solid fa-server"></i></div>
+          <div class="stat-value" id="stat-guilds">-</div>
+          <div class="stat-label">Servidores Conectados</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon" style="color: #23A55A;"><i class="fa-solid fa-users"></i></div>
+          <div class="stat-value" id="stat-users">-</div>
+          <div class="stat-label">Usuários Atendidos</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon" style="color: #FEE75C;"><i class="fa-solid fa-gamepad"></i></div>
+          <div class="stat-value" id="stat-roblox">-</div>
+          <div class="stat-label">Roblox Live Deploy</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon" style="color: #EB459E;"><i class="fa-solid fa-gauge-high"></i></div>
+          <div class="stat-value" id="stat-ping">-</div>
+          <div class="stat-label">Latência do Bot</div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    // Carrega dados de autenticação e estatísticas ao vivo
+    async function loadLanding() {
+      try {
+        const authRes = await fetch('/auth/me');
+        const authData = await authRes.json();
+
+        if (authData.authenticated) {
+          document.getElementById('nav-auth-section').innerHTML = `
+            <a href="/dashboard" class="user-badge" style="text-decoration: none; color: inherit;">
+              <img src="${authData.user.avatar}" alt="Avatar">
+              <span>${authData.user.global_name}</span>
+            </a>
+            <a href="/dashboard" class="btn btn-primary"><i class="fa-solid fa-sliders"></i> Meu Dashboard</a>
+          `;
+        }
+
+        const statsRes = await fetch('/api/stats');
+        const stats = await statsRes.json();
+
+        if (stats.avatar) document.getElementById('bot-avatar').src = stats.avatar;
+        if (stats.tag) document.getElementById('bot-name').innerText = stats.tag.split('#')[0];
+
+        document.getElementById('stat-guilds').innerText = stats.guildsCount.toLocaleString('pt-BR');
+        document.getElementById('stat-users').innerText = stats.usersCount.toLocaleString('pt-BR');
+        document.getElementById('stat-roblox').innerText = `v${stats.robloxVersion.split('.').slice(0, 2).join('.')}`;
+        document.getElementById('stat-ping').innerText = stats.ping;
+      } catch (err) {
+        console.error('Erro ao carregar dados:', err);
+      }
+    }
+    loadLanding();
+  </script>
+</body>
+</html>
