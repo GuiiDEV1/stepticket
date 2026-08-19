@@ -24,16 +24,20 @@ module.exports = {
     ),
 
   async execute(interaction, client) {
-    const subcommand = interaction.options.getSubcommand();
-    const guildId = interaction.guild.id;
+    let subcommand = 'versao';
+    try {
+      subcommand = interaction.options.getSubcommand();
+    } catch (e) {}
+
+    const guildId = interaction.guild ? interaction.guild.id : null;
     const tracker = DatabaseManager.getRobloxTracker();
-    const serverConfig = tracker.channels ? tracker.channels.find(c => c.guild_id === guildId) : null;
+    const serverConfig = (tracker.channels && guildId) ? tracker.channels.find(c => c.guild_id === guildId) : null;
 
     // =========================================================================
     // SUBCOMANDO: TESTAR ALERTA
     // =========================================================================
     if (subcommand === 'testar') {
-      if (!interaction.member.permissions.has(PermissionFlagsBits.Administrator)) {
+      if (!interaction.member || !interaction.member.permissions.has(PermissionFlagsBits.Administrator)) {
         return interaction.reply({
           embeds: [errorEmbed('Sem Permissão', 'Apenas administradores podem testar o envio de alertas.')],
           ephemeral: true
@@ -130,33 +134,32 @@ module.exports = {
       return interaction.editReply({ embeds: [statusEmbed] });
     }
 
-    if (subcommand === 'versao') {
-      const embed = createEmbed({
-        title: '🌐 Versões Ativas da Roblox (Canal LIVE)',
-        description: 'Informações de deploy oficiais sincronizadas diretamente dos servidores da Roblox.',
-        color: COLORS.PRIMARY,
-        thumbnail: 'https://i.imgur.com/8Q9bZ8R.png',
-        fields: [
-          {
-            name: '🎮 Roblox Player (Cliente de Jogo)',
-            value: `• **Versão:** \`${player.version}\`\n• **Deploy Hash:** \`${player.clientVersionUpload}\`\n• [📥 Download Direto](https://setup.rbxcdn.com/${player.clientVersionUpload}-RobloxPlayer.zip)`,
-            inline: false
-          },
-          {
-            name: '🛠️ Roblox Studio',
-            value: `• **Versão:** \`${studio.version}\`\n• **Deploy Hash:** \`${studio.clientVersionUpload}\`\n• [📥 Download Direto](https://setup.rbxcdn.com/${studio.clientVersionUpload}-RobloxStudio.zip)`,
-            inline: false
-          },
-          {
-            name: '⚡ Bootstrappers (Luqqzstrap / Bloxstrap)',
-            value: `Use \`/flag offsets\` para checar os offsets compatíveis com a versão atual (\`${player.version}\`).`,
-            inline: false
-          }
-        ],
-        footerText: 'Sincronizado em tempo real'
-      });
+    // Default: 'versao'
+    const embed = createEmbed({
+      title: '🌐 Versões Ativas da Roblox (Canal LIVE)',
+      description: 'Informações de deploy oficiais sincronizadas diretamente dos servidores da Roblox.',
+      color: COLORS.PRIMARY,
+      thumbnail: 'https://i.imgur.com/8Q9bZ8R.png',
+      fields: [
+        {
+          name: '🎮 Roblox Player (Cliente de Jogo)',
+          value: `• **Versão:** \`${player.version}\`\n• **Deploy Hash:** \`${player.clientVersionUpload}\`\n• [📥 Download Direto](https://setup.rbxcdn.com/${player.clientVersionUpload}-RobloxPlayer.zip)`,
+          inline: false
+        },
+        {
+          name: '🛠️ Roblox Studio',
+          value: `• **Versão:** \`${studio.version}\`\n• **Deploy Hash:** \`${studio.clientVersionUpload}\`\n• [📥 Download Direto](https://setup.rbxcdn.com/${studio.clientVersionUpload}-RobloxStudio.zip)`,
+          inline: false
+        },
+        {
+          name: '⚡ Bootstrappers (Luqqzstrap / Bloxstrap)',
+          value: `Use \`/flag offsets\` para checar os offsets compatíveis com a versão atual (\`${player.version}\`).`,
+          inline: false
+        }
+      ],
+      footerText: 'Sincronizado em tempo real'
+    });
 
-      return interaction.editReply({ embeds: [embed] });
-    }
+    return interaction.editReply({ embeds: [embed] });
   }
 };
