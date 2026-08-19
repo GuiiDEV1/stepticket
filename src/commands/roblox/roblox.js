@@ -59,7 +59,9 @@ module.exports = {
         });
       }
 
-      await interaction.deferReply({ ephemeral: true });
+      if (!interaction.deferred && !interaction.replied) {
+        await interaction.deferReply({ ephemeral: true }).catch(() => {});
+      }
 
       const versions = await fetchRobloxLiveVersions();
       const currentUpload = versions?.player?.clientVersionUpload || 'version-ce0bcd0fbd484804';
@@ -99,7 +101,10 @@ module.exports = {
     // =========================================================================
     // SUBCOMANDOS: VERSAO E STATUS
     // =========================================================================
-    await interaction.deferReply();
+    if (!interaction.deferred && !interaction.replied) {
+      await interaction.deferReply().catch(() => {});
+    }
+
     const versions = await fetchRobloxLiveVersions();
 
     if (!versions || !versions.player) {
