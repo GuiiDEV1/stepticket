@@ -59,10 +59,6 @@ module.exports = {
         });
       }
 
-      if (!interaction.deferred && !interaction.replied) {
-        await interaction.deferReply({ ephemeral: true }).catch(() => {});
-      }
-
       const versions = await fetchRobloxLiveVersions();
       const currentUpload = versions?.player?.clientVersionUpload || 'version-ce0bcd0fbd484804';
       const currentVersion = versions?.player?.version || '0.735.0.7351131';
@@ -88,35 +84,25 @@ module.exports = {
 
       try {
         await targetChannel.send({ content, embeds: [alertEmbed] });
-        return interaction.editReply({
-          embeds: [successEmbed('Teste Enviado com Sucesso!', `O alerta de teste foi postado no canal <#${targetChannel.id}>!`)]
+        return interaction.reply({
+          embeds: [successEmbed('Teste Enviado com Sucesso!', `O alerta de teste foi postado no canal <#${targetChannel.id}>!`)],
+          ephemeral: true
         });
       } catch (err) {
-        return interaction.editReply({
-          embeds: [errorEmbed('Falha no Envio', `O bot não conseguiu enviar mensagem no canal <#${targetChannel.id}>. Verifique as permissões de "Enviar Mensagens" e "Inserir Links".`)]
+        return interaction.reply({
+          embeds: [errorEmbed('Falha no Envio', `O bot não conseguiu enviar mensagem no canal <#${targetChannel.id}>. Verifique as permissões de "Enviar Mensagens" e "Inserir Links".`)],
+          ephemeral: true
         });
       }
     }
 
     // =========================================================================
-    // SUBCOMANDOS: VERSAO E STATUS
+    // SUBCOMANDOS: STATUS
     // =========================================================================
-    if (!interaction.deferred && !interaction.replied) {
-      await interaction.deferReply().catch(() => {});
-    }
-
-    const versions = await fetchRobloxLiveVersions();
-
-    if (!versions || !versions.player) {
-      return interaction.editReply({
-        embeds: [errorEmbed('Erro ao Consultar', 'Não foi possível obter dados da API da Roblox no momento.')]
-      });
-    }
-
-    const player = versions.player;
-    const studio = versions.studio;
-
     if (subcommand === 'status') {
+      const versions = await fetchRobloxLiveVersions();
+      const player = versions?.player || { version: '0.735.0.7351131', clientVersionUpload: 'version-ce0bcd0fbd484804' };
+
       const channelMention = serverConfig ? `<#${serverConfig.channel_id}>` : '❌ *Nenhum canal configurado (Use `/setup roblox-tracker`)*';
       const pingMention = serverConfig?.ping_role_id ? `<@&${serverConfig.ping_role_id}>` : '*Sem menção de cargo*';
       const lastCheck = tracker.last_checked_at ? `<t:${Math.floor(tracker.last_checked_at / 1000)}:R>` : 'Recentemente';
@@ -136,10 +122,23 @@ module.exports = {
         footerText: 'Dica: Use /roblox testar para simular um alerta no canal'
       });
 
-      return interaction.editReply({ embeds: [statusEmbed] });
+      return interaction.reply({ embeds: [statusEmbed] });
     }
 
-    // Default: 'versao'
+    // =========================================================================
+    // SUBCOMANDO: VERSAO
+    // =========================================================================
+    const versions = await fetchRobloxLiveVersions();
+    if (!versions || !versions.player) {
+      return interaction.reply({
+        embeds: [errorEmbed('Erro ao Consultar', 'Não foi possível obter dados da API da Roblox no momento.')],
+        ephemeral: true
+      });
+    }
+
+    const player = versions.player;
+    const studio = versions.studio;
+
     const embed = createEmbed({
       title: '🌐 Versões Ativas da Roblox (Canal LIVE)',
       description: 'Informações de deploy oficiais sincronizadas diretamente dos servidores da Roblox.',
@@ -165,6 +164,6 @@ module.exports = {
       footerText: 'Sincronizado em tempo real'
     });
 
-    return interaction.editReply({ embeds: [embed] });
+    return interaction.reply({ embeds: [embed] });
   }
 };
