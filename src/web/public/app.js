@@ -168,7 +168,19 @@ async function loadServerData() {
 
     // General / Welcome Tab
     populateSelect('welcome-channel', serverData.textChannels, serverData.config?.welcome_channel_id);
+    document.getElementById('welcome-style').value = serverData.config?.welcome_style || 'embed';
+    document.getElementById('welcome-canvas-title').value = serverData.config?.welcome_canvas_title || 'BEM-VINDO(A)!';
+    document.getElementById('welcome-canvas-color1').value = serverData.config?.welcome_canvas_color1 || '#5865F2';
+    document.getElementById('welcome-canvas-color2').value = serverData.config?.welcome_canvas_color2 || '#23A55A';
+    document.getElementById('welcome-canvas-bg').value = serverData.config?.welcome_canvas_background || '';
     document.getElementById('welcome-msg').value = serverData.config?.welcome_message || '';
+
+    document.getElementById('welcome-dm-enabled').checked = Boolean(serverData.config?.welcome_dm_enabled);
+    document.getElementById('welcome-dm-safety').checked = Boolean(serverData.config?.welcome_dm_safety_alert !== 0);
+    document.getElementById('welcome-dm-msg').value = serverData.config?.welcome_dm_message || '';
+    document.getElementById('welcome-dm-color').value = serverData.config?.welcome_dm_color || '#5865F2';
+
+    toggleWelcomeCanvasSettings();
     populateSelect('logs-channel', serverData.textChannels, serverData.config?.logs_channel_id);
     populateSelect('suggestions-channel', serverData.textChannels, serverData.config?.suggestions_channel_id);
 
@@ -561,11 +573,28 @@ async function saveAutoMod(e) {
 }
 
 // 6. Geral / Boas-Vindas
+function toggleWelcomeCanvasSettings() {
+  const style = document.getElementById('welcome-style').value;
+  const box = document.getElementById('welcome-canvas-box');
+  if (box) {
+    box.style.display = style === 'canvas' ? 'block' : 'none';
+  }
+}
+
 async function saveGeneral(e) {
   if (e) e.preventDefault();
   const body = {
     welcomeChannelId: document.getElementById('welcome-channel').value,
+    welcomeStyle: document.getElementById('welcome-style').value,
+    welcomeCanvasTitle: document.getElementById('welcome-canvas-title').value,
+    welcomeCanvasColor1: document.getElementById('welcome-canvas-color1').value,
+    welcomeCanvasColor2: document.getElementById('welcome-canvas-color2').value,
+    welcomeCanvasBackground: document.getElementById('welcome-canvas-bg').value,
     welcomeMessage: document.getElementById('welcome-msg').value,
+    welcomeDmEnabled: document.getElementById('welcome-dm-enabled').checked,
+    welcomeDmSafetyAlert: document.getElementById('welcome-dm-safety').checked,
+    welcomeDmMessage: document.getElementById('welcome-dm-msg').value,
+    welcomeDmColor: document.getElementById('welcome-dm-color').value,
     logsChannelId: document.getElementById('logs-channel').value,
     suggestionsChannelId: document.getElementById('suggestions-channel').value
   };
@@ -579,6 +608,26 @@ async function saveGeneral(e) {
   const data = await res.json();
   if (data.success) showToast(data.message);
   else showToast(data.error || 'Erro ao salvar', 'error');
+}
+
+async function testWelcomeChannel() {
+  const res = await fetch(`/api/guilds/${guildId}/welcome/test-channel`, {
+    method: 'POST'
+  });
+
+  const data = await res.json();
+  if (data.success) showToast(data.message);
+  else showToast(data.error || 'Erro ao testar boas-vindas no canal', 'error');
+}
+
+async function testWelcomeDm() {
+  const res = await fetch(`/api/guilds/${guildId}/welcome/test-dm`, {
+    method: 'POST'
+  });
+
+  const data = await res.json();
+  if (data.success) showToast(data.message);
+  else showToast(data.error || 'Erro ao testar boas-vindas na DM', 'error');
 }
 
 // =========================================================================

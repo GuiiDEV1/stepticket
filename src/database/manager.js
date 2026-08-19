@@ -36,7 +36,16 @@ const DatabaseManager = {
         security_anti_alt_enabled: 0,
         security_min_account_age: 7,
         security_alt_action: 'kick',
-        security_quarantine_role_id: null
+        security_quarantine_role_id: null,
+        welcome_style: 'embed',
+        welcome_canvas_title: 'BEM-VINDO(A)!',
+        welcome_canvas_color1: '#5865F2',
+        welcome_canvas_color2: '#23A55A',
+        welcome_canvas_background: null,
+        welcome_dm_enabled: 0,
+        welcome_dm_message: 'Olá {user}, seja bem-vindo(a) ao **{server}**! Esperamos que você se divirta na nossa comunidade.',
+        welcome_dm_color: '#5865F2',
+        welcome_dm_safety_alert: 1
       };
       saveToDisk();
     }
@@ -49,6 +58,14 @@ const DatabaseManager = {
     if (cfg.security_anti_alt_enabled === undefined) cfg.security_anti_alt_enabled = 0;
     if (!cfg.security_min_account_age) cfg.security_min_account_age = 7;
     if (!cfg.security_alt_action) cfg.security_alt_action = 'kick';
+    if (!cfg.welcome_style) cfg.welcome_style = 'embed';
+    if (!cfg.welcome_canvas_title) cfg.welcome_canvas_title = 'BEM-VINDO(A)!';
+    if (!cfg.welcome_canvas_color1) cfg.welcome_canvas_color1 = '#5865F2';
+    if (!cfg.welcome_canvas_color2) cfg.welcome_canvas_color2 = '#23A55A';
+    if (cfg.welcome_dm_enabled === undefined) cfg.welcome_dm_enabled = 0;
+    if (!cfg.welcome_dm_message) cfg.welcome_dm_message = 'Olá {user}, seja bem-vindo(a) ao **{server}**! Esperamos que você se divirta na nossa comunidade.';
+    if (!cfg.welcome_dm_color) cfg.welcome_dm_color = '#5865F2';
+    if (cfg.welcome_dm_safety_alert === undefined) cfg.welcome_dm_safety_alert = 1;
     if (!Array.isArray(cfg.ticket_categories) || cfg.ticket_categories.length === 0) {
       cfg.ticket_categories = [
         { id: 'suporte', label: 'Suporte Geral', emoji: '🛠️', desc: 'Dúvidas e ajuda geral' },

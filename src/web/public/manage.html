@@ -629,33 +629,132 @@
         <div id="tab-welcome" class="tab-content">
           <div class="card-panel">
             <div class="panel-header">
-              <h2><i class="fa-solid fa-hand-wave" style="color: var(--primary);"></i> Boas-Vindas & Logs de Auditoria</h2>
-              <p>Recepção de novos membros e canais de registro de ações administrativas.</p>
+              <h2><i class="fa-solid fa-hand-wave" style="color: var(--primary);"></i> Boas-Vindas, Imagem Canvas & Segurança</h2>
+              <p>Recepção de novos membros com cartões visuais em imagem, mensagem na DM e canais de registro administrativo.</p>
             </div>
             <form id="form-general" onsubmit="saveGeneral(event)">
-              <div class="form-group">
-                <label>👋 Canal de Boas-Vindas</label>
-                <select id="welcome-channel" class="form-control"></select>
+
+              <!-- SEÇÃO 1: BOAS-VINDAS NO CANAL -->
+              <h3 style="font-size: 1.1rem; margin-bottom: 1rem; color: #FFFFFF; display: flex; align-items: center; gap: 8px;">
+                <i class="fa-solid fa-bullhorn" style="color: var(--primary);"></i> Boas-Vindas no Canal do Discord
+              </h3>
+
+              <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 1rem; margin-bottom: 1.25rem;">
+                <div class="form-group" style="margin-bottom: 0;">
+                  <label>👋 Canal de Boas-Vindas</label>
+                  <select id="welcome-channel" class="form-control"></select>
+                </div>
+
+                <div class="form-group" style="margin-bottom: 0;">
+                  <label>🖼️ Formato da Mensagem</label>
+                  <select id="welcome-style" class="form-control" onchange="toggleWelcomeCanvasSettings()">
+                    <option value="embed">Apenas Embed Tradicional</option>
+                    <option value="canvas">🎨 Imagem Canvas Personalizada + Embed</option>
+                  </select>
+                </div>
+              </div>
+
+              <!-- CONFIGURAÇÃO DO CARTÃO CANVAS (CONDICIONAL) -->
+              <div id="welcome-canvas-box" style="background: rgba(255, 255, 255, 0.02); border: 1px solid var(--border-color); border-radius: var(--radius); padding: 1.25rem; margin-bottom: 1.5rem;">
+                <h4 style="font-size: 0.95rem; color: var(--primary-light); margin-bottom: 1rem; display: flex; align-items: center; gap: 8px;">
+                  <i class="fa-solid fa-palette"></i> Personalização da Imagem Canvas
+                </h4>
+
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-bottom: 1rem;">
+                  <div class="form-group" style="margin-bottom: 0;">
+                    <label>📝 Título Superior do Card</label>
+                    <input type="text" id="welcome-canvas-title" class="form-control" value="BEM-VINDO(A)!" placeholder="Ex: BEM-VINDO(A)!">
+                  </div>
+
+                  <div class="form-group" style="margin-bottom: 0;">
+                    <label>🎨 Cor Primária (Neon)</label>
+                    <input type="color" id="welcome-canvas-color1" class="form-control" value="#5865F2" style="height: 44px; padding: 4px 8px; cursor: pointer;">
+                  </div>
+
+                  <div class="form-group" style="margin-bottom: 0;">
+                    <label>🎨 Cor Secundária (Degradê)</label>
+                    <input type="color" id="welcome-canvas-color2" class="form-control" value="#23A55A" style="height: 44px; padding: 4px 8px; cursor: pointer;">
+                  </div>
+                </div>
+
+                <div class="form-group" style="margin-bottom: 0;">
+                  <label>🖼️ URL de Imagem de Fundo / Wallpaper (Opcional)</label>
+                  <input type="url" id="welcome-canvas-bg" class="form-control" placeholder="https://i.imgur.com/exemplo.png (deixe vazio para degradê escuro)">
+                  <div class="hint">Recomendado formato horizontal (900x360 ou 1920x1080). Imagens do Imgur funcionam perfeitamente.</div>
+                </div>
               </div>
 
               <div class="form-group">
-                <label>📝 Mensagem de Boas-Vindas</label>
-                <textarea id="welcome-msg" class="form-control" rows="3" placeholder="Seja bem-vindo(a) ao {guild}, {user}!"></textarea>
-                <div class="hint">Use <code>{user}</code> para marcar o membro e <code>{guild}</code> para o nome do servidor.</div>
+                <label>📝 Mensagem de Texto do Canal</label>
+                <textarea id="welcome-msg" class="form-control" rows="2" placeholder="Olá {user}, seja muito bem-vindo(a) ao servidor **{server}**! Agora somos **{members}** membros."></textarea>
+                <div class="hint">Variáveis: <code>{user}</code> (Mencionar), <code>{username}</code> (Nome limpo), <code>{server}</code> (Servidor), <code>{members}</code> (Total).</div>
               </div>
 
-              <div class="form-group">
-                <label>🛡️ Canal de Logs de Moderação & Auditoria</label>
-                <select id="logs-channel" class="form-control"></select>
-                <div class="hint">Onde bans, kicks, mutes, warns e limpezas são registrados.</div>
+              <div style="margin-bottom: 2rem;">
+                <button type="button" class="btn btn-secondary" onclick="testWelcomeChannel()"><i class="fa-solid fa-paper-plane"></i> Testar Envio no Canal</button>
               </div>
 
-              <div class="form-group">
-                <label>💡 Canal de Sugestões</label>
-                <select id="suggestions-channel" class="form-control"></select>
+              <!-- SEÇÃO 2: BOAS-VINDAS PRIVADA NA DM (COM ANTI-GOLPES) -->
+              <h3 style="font-size: 1.1rem; margin-bottom: 1rem; color: #FFFFFF; display: flex; align-items: center; gap: 8px;">
+                <i class="fa-solid fa-envelope-open-text" style="color: var(--warning);"></i> Boas-Vindas Privada na DM do Membro
+              </h3>
+
+              <div class="toggle-item">
+                <div class="info">
+                  <h4>📬 Enviar Mensagem Direta (DM) para Quem Entrar</h4>
+                  <p>O bot envia uma recepção privada com regras e dicas de segurança diretamente na DM do usuário.</p>
+                </div>
+                <label class="switch">
+                  <input type="checkbox" id="welcome-dm-enabled">
+                  <span class="slider"></span>
+                </label>
               </div>
 
-              <button type="submit" class="btn btn-success" style="margin-top: 1rem;"><i class="fa-solid fa-floppy-disk"></i> Salvar Configurações</button>
+              <div class="toggle-item">
+                <div class="info">
+                  <h4>🛡️ Incluir Alerta de Segurança Anti-Golpes</h4>
+                  <p>Adiciona aviso automático alertando que a Staff nunca pede senhas, tokens ou links de Nitro suspeitos.</p>
+                </div>
+                <label class="switch">
+                  <input type="checkbox" id="welcome-dm-safety" checked>
+                  <span class="slider"></span>
+                </label>
+              </div>
+
+              <div style="display: grid; grid-template-columns: 1fr 140px; gap: 1rem; margin-top: 1rem;">
+                <div class="form-group" style="margin-bottom: 0;">
+                  <label>📝 Mensagem Privada da DM</label>
+                  <textarea id="welcome-dm-msg" class="form-control" rows="2" placeholder="Olá {user}, seja muito bem-vindo(a) ao servidor **{server}**!"></textarea>
+                </div>
+                <div class="form-group" style="margin-bottom: 0;">
+                  <label>🎨 Cor Embed DM</label>
+                  <input type="color" id="welcome-dm-color" class="form-control" value="#5865F2" style="height: 44px; padding: 4px 8px; cursor: pointer;">
+                </div>
+              </div>
+
+              <div style="margin-top: 1rem; margin-bottom: 2rem;">
+                <button type="button" class="btn btn-secondary" onclick="testWelcomeDm()"><i class="fa-solid fa-paper-plane"></i> Testar na Minha DM</button>
+              </div>
+
+              <!-- SEÇÃO 3: LOGS E SUGESTÕES -->
+              <h3 style="font-size: 1.1rem; margin-bottom: 1rem; color: #FFFFFF; display: flex; align-items: center; gap: 8px;">
+                <i class="fa-solid fa-shield-halved" style="color: var(--success);"></i> Canais de Auditoria & Sugestões
+              </h3>
+
+              <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 1rem;">
+                <div class="form-group">
+                  <label>🛡️ Canal de Logs de Moderação</label>
+                  <select id="logs-channel" class="form-control"></select>
+                  <div class="hint">Onde bans, kicks, mutes, warns e limpezas são registrados.</div>
+                </div>
+
+                <div class="form-group">
+                  <label>💡 Canal de Sugestões</label>
+                  <select id="suggestions-channel" class="form-control"></select>
+                </div>
+              </div>
+
+              <button type="submit" class="btn btn-success" style="margin-top: 1rem;"><i class="fa-solid fa-floppy-disk"></i> Salvar Todas as Configurações</button>
             </form>
           </div>
         </div>

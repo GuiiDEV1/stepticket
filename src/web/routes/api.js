@@ -454,17 +454,149 @@ function createApiRouter(client) {
   // 9. BOAS-VINDAS, SUGESTÕES E LOGS DE AUDITORIA
   // =========================================================================
   router.post('/guilds/:guildId/general', requireAuth, requireGuildAdmin(client), (req, res) => {
-    const { welcomeChannelId, welcomeMessage, logsChannelId, suggestionsChannelId } = req.body;
+    const {
+      welcomeChannelId,
+      welcomeMessage,
+      welcomeStyle,
+      welcomeCanvasTitle,
+      welcomeCanvasColor1,
+      welcomeCanvasColor2,
+      welcomeCanvasBackground,
+      welcomeDmEnabled,
+      welcomeDmMessage,
+      welcomeDmColor,
+      welcomeDmSafetyAlert,
+      logsChannelId,
+      suggestionsChannelId
+    } = req.body;
     const guildId = req.targetGuildId;
 
     DatabaseManager.updateConfig(guildId, {
       welcome_channel_id: welcomeChannelId || null,
-      welcome_message: welcomeMessage || 'Seja bem-vindo(a) ao {guild}, {user}!',
+      welcome_message: welcomeMessage || 'Olá {user}, seja muito bem-vindo(a) ao servidor **{server}**! Agora somos **{members}** membros.',
+      welcome_style: welcomeStyle || 'embed',
+      welcome_canvas_title: welcomeCanvasTitle || 'BEM-VINDO(A)!',
+      welcome_canvas_color1: welcomeCanvasColor1 || '#5865F2',
+      welcome_canvas_color2: welcomeCanvasColor2 || '#23A55A',
+      welcome_canvas_background: welcomeCanvasBackground ? welcomeCanvasBackground.trim() : null,
+      welcome_dm_enabled: welcomeDmEnabled ? 1 : 0,
+      welcome_dm_message: welcomeDmMessage || 'Olá {user}, seja bem-vindo(a) ao **{server}**! Esperamos que você se divirta na nossa comunidade.',
+      welcome_dm_color: welcomeDmColor || '#5865F2',
+      welcome_dm_safety_alert: welcomeDmSafetyAlert ? 1 : 0,
       logs_channel_id: logsChannelId || null,
       suggestions_channel_id: suggestionsChannelId || null
     });
 
-    res.json({ success: true, message: 'Configurações gerais salvas com sucesso!' });
+    res.json({ success: true, message: 'Configurações gerais e de boas-vindas salvas com sucesso!' });
+  });
+
+  // TESTE DE BOAS-VINDAS NO CANAL
+  router.post('/guilds/:guildId/welcome/test-channel', requireAuth, requireGuildAdmin(client), async (req, res) => {
+    const guildId = req.targetGuildId;
+    const botGuild = client.guilds.cache.get(guildId);
+    if (!botGuild) return res.status(404).json({ error: 'Servidor não encontrado.' });
+
+    const config = DatabaseManager.getConfig(guildId);
+    if (!config.welcome_channel_id) {
+      return res.status(400).json({ error: 'Nenhum canal de boas-vindas foi configurado ainda.' });
+    }
+
+    const channel = botGuild.channels.cache.get(config.welcome_channel_id);
+    if (!channel || !channel.isTextBased()) {
+      return res.status(400).json({ error: 'Canal de boas-vindas inválido ou inacessível.' });
+    }
+
+    try {
+      const user = req.session.user;
+      let msg = config.welcome_message || 'Olá {user}, seja muito bem-vindo(a) ao servidor **{server}**! Agora somos **{members}** membros.';
+      msg = msg
+        .replace(/{user}/g, `<@${user.id}>`)
+        .replace(/{username}/g, user.username)
+        .replace(/{server}/g, botGuild.name)
+        .replace(/{members}/g, botGuild.memberCount.toString());
+
+      const welcomeEmbed = createEmbed({
+        title: `👋 [TESTE] Bem-vindo(a) ao ${botGuild.name}!`,
+        description: msg,
+        thumbnail: user.avatar,
+        color: COLORS.SUCCESS,
+        footerText: `Membro #${botGuild.memberCount} • Teste de Boas-Vindas`
+      });
+
+      if (config.welcome_style === 'canvas') {
+        const { generateWelcomeCard } = require('../../utils/welcomeCard');
+        const cardAttachment = await generateWelcomeCard({
+          username: user.username,
+          avatarURL: user.avatar,
+          memberCount: botGuild.memberCount,
+          guildName: botGuild.name,
+          title: config.welcome_canvas_title || 'BEM-VINDO(A)!',
+          color1: config.welcome_canvas_color1 || '#5865F2',
+          color2: config.welcome_canvas_color2 || '#23A55A',
+          backgroundImageUrl: config.welcome_canvas_background || null
+        });
+
+        welcomeEmbed.setImage('attachment://welcome-card.png');
+        await channel.send({ content: `<@${user.id}>`, embeds: [welcomeEmbed], files: [cardAttachment] });
+      } else {
+        await channel.send({ content: `<@${user.id}>`, embeds: [welcomeEmbed] });
+      }
+
+      res.json({ success: true, message: `Mensagem de boas-vindas testada com sucesso em #${channel.name}!` });
+    } catch (err) {
+      res.status(500).json({ error: 'Falha ao testar no canal: ' + err.message });
+    }
+  });
+
+  // TESTE DE BOAS-VINDAS NA DM
+  router.post('/guilds/:guildId/welcome/test-dm', requireAuth, requireGuildAdmin(client), async (req, res) => {
+    const guildId = req.targetGuildId;
+    const botGuild = client.guilds.cache.get(guildId);
+    if (!botGuild) return res.status(404).json({ error: 'Servidor não encontrado.' });
+
+    const config = DatabaseManager.getConfig(guildId);
+    const userId = req.session.user.id;
+
+    try {
+      const discordUser = await client.users.fetch(userId);
+      if (!discordUser) return res.status(404).json({ error: 'Usuário do Discord não encontrado.' });
+
+      let dmMsg = config.welcome_dm_message || 'Olá {user}, seja bem-vindo(a) ao **{server}**! Esperamos que você se divirta na nossa comunidade.';
+      dmMsg = dmMsg
+        .replace(/{user}/g, `<@${userId}>`)
+        .replace(/{username}/g, discordUser.username)
+        .replace(/{server}/g, botGuild.name)
+        .replace(/{members}/g, botGuild.memberCount.toString());
+
+      let dmColor = COLORS.PRIMARY;
+      if (config.welcome_dm_color && config.welcome_dm_color.startsWith('#')) {
+        const parsed = parseInt(config.welcome_dm_color.replace('#', ''), 16);
+        if (!isNaN(parsed)) dmColor = parsed;
+      }
+
+      const dmEmbedFields = [];
+      if (config.welcome_dm_safety_alert) {
+        dmEmbedFields.push({
+          name: '🛡️ Dica de Segurança & Proteção',
+          value: '⚠️ **Atenção:** A Staff deste servidor **NUNCA** entrará em contato pedindo sua senha, token de conta, código de verificação ou downloads de arquivos suspeitos (.exe, .scr). Desconfie de mensagens oferecendo Nitro ou Robux grátis!',
+          inline: false
+        });
+      }
+
+      const dmEmbed = createEmbed({
+        title: `👋 [TESTE] Bem-vindo(a) ao ${botGuild.name}!`,
+        description: dmMsg,
+        color: dmColor,
+        thumbnail: botGuild.iconURL({ dynamic: true }) || discordUser.displayAvatarURL({ dynamic: true }),
+        fields: dmEmbedFields,
+        footerText: `Teste de boas-vindas na DM • ${botGuild.name}`
+      });
+
+      await discordUser.send({ embeds: [dmEmbed] });
+      res.json({ success: true, message: 'Mensagem de boas-vindas enviada na sua DM do Discord com sucesso!' });
+    } catch (err) {
+      res.status(500).json({ error: 'Não foi possível enviar DM. Verifique se suas mensagens diretas estão abertas para membros do servidor: ' + err.message });
+    }
   });
 
   // =========================================================================

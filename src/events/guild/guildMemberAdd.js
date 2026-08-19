@@ -70,7 +70,7 @@ module.exports = {
       console.error('Erro ao atribuir AutoRole:', err);
     }
 
-    // 2. MENSAGEM DE BOAS-VINDAS
+    // 2. MENSAGEM DE BOAS-VINDAS NO CANAL
     if (config.welcome_channel_id) {
       const welcomeChannel = member.guild.channels.cache.get(config.welcome_channel_id);
       if (welcomeChannel) {
@@ -89,8 +89,68 @@ module.exports = {
           footerText: `Membro #${member.guild.memberCount}`
         });
 
-        welcomeChannel.send({ content: `${member}`, embeds: [welcomeEmbed] }).catch(() => {});
+        // Se o estilo for Canvas, gera a imagem
+        if (config.welcome_style === 'canvas') {
+          const { generateWelcomeCard } = require('../../utils/welcomeCard');
+          try {
+            const avatarURL = member.user.displayAvatarURL({ extension: 'png', size: 512, forceStatic: true });
+            const cardAttachment = await generateWelcomeCard({
+              username: member.user.username,
+              avatarURL,
+              memberCount: member.guild.memberCount,
+              guildName: member.guild.name,
+              title: config.welcome_canvas_title || 'BEM-VINDO(A)!',
+              color1: config.welcome_canvas_color1 || '#5865F2',
+              color2: config.welcome_canvas_color2 || '#23A55A',
+              backgroundImageUrl: config.welcome_canvas_background || null
+            });
+
+            welcomeEmbed.setImage('attachment://welcome-card.png');
+            welcomeChannel.send({ content: `${member}`, embeds: [welcomeEmbed], files: [cardAttachment] }).catch(() => {});
+          } catch (canvasErr) {
+            console.error('Erro ao gerar Canvas de boas-vindas:', canvasErr);
+            welcomeChannel.send({ content: `${member}`, embeds: [welcomeEmbed] }).catch(() => {});
+          }
+        } else {
+          welcomeChannel.send({ content: `${member}`, embeds: [welcomeEmbed] }).catch(() => {});
+        }
       }
+    }
+
+    // 2.1 MENSAGEM DE BOAS-VINDAS PRIVADA NA DM (COM ALERTA ANTI-GOLPES)
+    if (config.welcome_dm_enabled && !member.user.bot) {
+      let dmMsg = config.welcome_dm_message || 'Olá {user}, seja bem-vindo(a) ao **{server}**! Esperamos que você se divirta na nossa comunidade.';
+      dmMsg = dmMsg
+        .replace(/{user}/g, `${member}`)
+        .replace(/{username}/g, member.user.username)
+        .replace(/{server}/g, member.guild.name)
+        .replace(/{members}/g, member.guild.memberCount.toString());
+
+      let dmColor = COLORS.PRIMARY;
+      if (config.welcome_dm_color && config.welcome_dm_color.startsWith('#')) {
+        const parsed = parseInt(config.welcome_dm_color.replace('#', ''), 16);
+        if (!isNaN(parsed)) dmColor = parsed;
+      }
+
+      const dmEmbedFields = [];
+      if (config.welcome_dm_safety_alert) {
+        dmEmbedFields.push({
+          name: '🛡️ Dica de Segurança & Proteção',
+          value: '⚠️ **Atenção:** A Staff deste servidor **NUNCA** entrará em contato pedindo sua senha, token de conta, código de verificação ou downloads de arquivos suspeitos (.exe, .scr). Desconfie de mensagens oferecendo Nitro ou Robux grátis!',
+          inline: false
+        });
+      }
+
+      const dmEmbed = createEmbed({
+        title: `👋 Bem-vindo(a) ao ${member.guild.name}!`,
+        description: dmMsg,
+        color: dmColor,
+        thumbnail: member.guild.iconURL({ dynamic: true }) || member.user.displayAvatarURL({ dynamic: true }),
+        fields: dmEmbedFields,
+        footerText: `Mensagem de segurança oficial • ${member.guild.name}`
+      });
+
+      member.send({ embeds: [dmEmbed] }).catch(() => {});
     }
 
     // 3. LOGS DE AUDITORIA
