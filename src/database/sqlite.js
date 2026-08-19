@@ -33,7 +33,8 @@ const defaultSchema = {
   verification: {}, // { [guild_id]: { channel_id, role_id, type: 'captcha'|'button', enabled: 1 } }
   economy: {}, // { [`${guild_id}_${user_id}`]: { guild_id, user_id, wallet, bank, last_daily, last_work } }
   economy_shop: [], // [ { id, guild_id, role_id, name, price, description } ]
-  youtube_notifications: [] // [ { guild_id, channel_id, youtube_channel_id, last_video_id, custom_message } ]
+  youtube_notifications: [], // [ { guild_id, channel_id, youtube_channel_id, last_video_id, custom_message } ]
+  web_sessions: {} // [sessionId]: { sessionId, user, guilds, expiresAt }
 };
 
 let store = { ...defaultSchema };

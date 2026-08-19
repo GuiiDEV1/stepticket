@@ -545,6 +545,28 @@ const DatabaseManager = {
     if (!store.youtube_notifications) return;
     store.youtube_notifications = store.youtube_notifications.filter(n => !(n.guild_id === guildId && n.youtube_channel_id === youtubeChannelId));
     saveToDisk();
+  },
+
+  // ===================== WEB SESSIONS =====================
+  getSession(sessionId) {
+    if (!store.web_sessions) store.web_sessions = {};
+    const session = store.web_sessions[sessionId];
+    if (session && session.expiresAt > Date.now()) {
+      return session;
+    }
+    return null;
+  },
+
+  setSession(sessionId, data) {
+    if (!store.web_sessions) store.web_sessions = {};
+    store.web_sessions[sessionId] = data;
+    saveToDisk();
+  },
+
+  deleteSession(sessionId) {
+    if (!store.web_sessions) store.web_sessions = {};
+    delete store.web_sessions[sessionId];
+    saveToDisk();
   }
 };
 

@@ -1,13 +1,11 @@
 const crypto = require('crypto');
 const { PermissionsBitField } = require('discord.js');
+const DatabaseManager = require('../database/manager.js');
 
 // Segredo para assinatura de cookies de sessão
-const SESSION_SECRET = process.env.SESSION_SECRET || crypto.randomBytes(32).toString('hex');
+const SESSION_SECRET = process.env.SESSION_SECRET || 'rikeozinho_super_secure_session_secret_key_2026';
 const CLIENT_ID = process.env.CLIENT_ID || '1538556104924070050';
 const CLIENT_SECRET = process.env.CLIENT_SECRET || process.env.DISCORD_CLIENT_SECRET || '';
-
-// Memória temporária de sessões (Map: sessionId -> { user, guilds, expiresAt })
-const sessions = new Map();
 
 /**
  * Cria uma assinatura HMAC para o ID da sessão
@@ -18,7 +16,7 @@ function signSession(sessionId) {
 }
 
 /**
- * Valida e recupera o ID da sessão a partir do cookie assinado
+ * Valida e recupera a sessão do banco persistente a partir do cookie assinado
  */
 function verifySession(signedCookie) {
   if (!signedCookie || typeof signedCookie !== 'string') return null;
@@ -29,10 +27,7 @@ function verifySession(signedCookie) {
   try {
     const expectedHmac = crypto.createHmac('sha256', SESSION_SECRET).update(sessionId).digest('hex');
     if (crypto.timingSafeEqual(Buffer.from(hmac), Buffer.from(expectedHmac))) {
-      const session = sessions.get(sessionId);
-      if (session && session.expiresAt > Date.now()) {
-        return session;
-      }
+      return DatabaseManager.getSession(sessionId);
     }
   } catch (e) {}
   return null;
@@ -89,7 +84,7 @@ async function fetchUserGuilds(accessToken) {
 }
 
 /**
- * Cria e salva uma nova sessão autenticada
+ * Cria e salva uma nova sessão autenticada persistente no disco
  */
 function createSession(user, guilds) {
   const sessionId = crypto.randomBytes(24).toString('hex');
@@ -100,7 +95,7 @@ function createSession(user, guilds) {
     expiresAt: Date.now() + 1000 * 60 * 60 * 24 * 7 // 7 dias
   };
 
-  sessions.set(sessionId, sessionData);
+  DatabaseManager.setSession(sessionId, sessionData);
   return {
     sessionId,
     signedCookie: signSession(sessionId),
@@ -136,7 +131,7 @@ function requireAuth(req, res, next) {
 }
 
 /**
- * Middleware de segurança contra IDOR: Verifica se o usuário tem permissão de Admin na guild específica
+ * Middleware de segurança: Validação robusta de permissão de administrador no servidor
  */
 function requireGuildAdmin(client) {
   return async (req, res, next) => {
@@ -155,26 +150,31 @@ function requireGuildAdmin(client) {
       return res.status(404).json({ error: 'O bot não está presente neste servidor.' });
     }
 
-    // 2. Validação Real-Time no Servidor do Discord
+    // 2. Validação Real-Time no Servidor do Discord (Owner ou Permissão de Administrador)
     const isGuildOwner = botGuild.ownerId === req.user.id;
-    const member = await botGuild.members.fetch(req.user.id).catch(() => null);
-    const isDiscordAdmin = member && (
-      member.permissions.has(PermissionsBitField.Flags.Administrator) ||
-      member.permissions.has(PermissionsBitField.Flags.ManageGuild)
-    );
+    let isDiscordAdmin = false;
 
-    // 3. Validação pelo Token OAuth2 (Sessão)
+    try {
+      const member = await botGuild.members.fetch(req.user.id).catch(() => null);
+      if (member) {
+        isDiscordAdmin = member.permissions.has(PermissionsBitField.Flags.Administrator) ||
+          member.permissions.has(PermissionsBitField.Flags.ManageGuild);
+      }
+    } catch (e) {}
+
+    // 3. Validação pelo Token OAuth2 (Sessão do Discord)
     const userGuild = (req.userGuilds || []).find(g => g.id === guildId);
-    const permissions = userGuild ? BigInt(userGuild.permissions || '0') : 0n;
-    const isOAuthAdmin = userGuild && (
-      userGuild.owner ||
-      (permissions & 0x8n) === 0x8n ||
-      (permissions & 0x20n) === 0x20n
-    );
+    let isOAuthAdmin = false;
+    if (userGuild) {
+      const permissions = BigInt(userGuild.permissions || userGuild.permissions_new || '0');
+      const isAdmin = (permissions & 0x8n) === 0x8n;
+      const isManager = (permissions & 0x20n) === 0x20n;
+      isOAuthAdmin = Boolean(userGuild.owner || isAdmin || isManager);
+    }
 
-    // Se falhar em todas as verificações, rejeita
+    // Se qualquer uma das 3 verificações for válida, concede acesso
     if (!isGuildOwner && !isDiscordAdmin && !isOAuthAdmin) {
-      return res.status(403).json({ error: 'Você não possui permissão de Administrador neste servidor.' });
+      return res.status(403).json({ error: 'Você precisa ser Administrador ou Dono deste servidor para acessá-lo.' });
     }
 
     // Garante carregamento de canais e cargos
@@ -196,6 +196,5 @@ module.exports = {
   createSession,
   verifySession,
   requireAuth,
-  requireGuildAdmin,
-  sessions
+  requireGuildAdmin
 };

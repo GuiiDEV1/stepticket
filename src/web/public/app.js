@@ -88,9 +88,13 @@ async function loadServerData() {
     // 2. Dados do Servidor
     const res = await fetch(`/api/guilds/${guildId}/data`);
     if (!res.ok) {
-      const err = await res.json().catch(() => ({ error: 'Erro de permissão' }));
-      showToast(err.error || 'Erro ao carregar dados do servidor', 'error');
-      setTimeout(() => { window.location.href = '/dashboard'; }, 2000);
+      if (res.status === 401) {
+        window.location.href = '/auth/login';
+        return;
+      }
+      const err = await res.json().catch(() => ({ error: 'Servidor indisponível ou permissão insuficiente' }));
+      showToast(err.error || 'Falha ao acessar o servidor', 'error');
+      setTimeout(() => { window.location.href = '/dashboard'; }, 3000);
       return;
     }
 
