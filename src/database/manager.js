@@ -34,6 +34,25 @@ const DatabaseManager = {
     saveToDisk();
   },
 
+  getAutoMod(guildId) {
+    const config = this.getConfig(guildId);
+    return {
+      anti_invite: config.automod_antiinvite || 0,
+      anti_links: config.automod_antilink || 0,
+      anti_spam: config.automod_antispam || 0,
+      anti_mass_mention: config.automod_antimassmention || 0
+    };
+  },
+
+  updateAutoMod(guildId, updates) {
+    const patch = {};
+    if (updates.anti_invite !== undefined) patch.automod_antiinvite = updates.anti_invite ? 1 : 0;
+    if (updates.anti_links !== undefined) patch.automod_antilink = updates.anti_links ? 1 : 0;
+    if (updates.anti_spam !== undefined) patch.automod_antispam = updates.anti_spam ? 1 : 0;
+    if (updates.anti_mass_mention !== undefined) patch.automod_antimassmention = updates.anti_mass_mention ? 1 : 0;
+    this.updateConfig(guildId, patch);
+  },
+
   // ===================== TICKETS =====================
   createTicket({ ticketId, guildId, channelId, userId, category }) {
     store.tickets[channelId] = {
