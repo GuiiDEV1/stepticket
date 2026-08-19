@@ -4,21 +4,25 @@ const { errorEmbed } = require('../../utils/embedBuilder.js');
 module.exports = {
   name: Events.InteractionCreate,
   async execute(interaction, client) {
-    // Tratar Slash Commands
+    const activeClient = client || interaction.client;
+
+    // Tratar apenas Slash Commands (Chat Input)
     if (interaction.isChatInputCommand()) {
-      const command = client.commands ? client.commands.get(interaction.commandName) : null;
+      const commandName = interaction.commandName;
+      const command = activeClient.commands ? activeClient.commands.get(commandName) : null;
 
       if (!command) {
+        console.warn(`[AVISO] Comando /${commandName} não encontrado na memória do bot.`);
         return interaction.reply({
-          embeds: [errorEmbed('Comando Não Encontrado', 'Este comando não está disponível no momento.')],
+          embeds: [errorEmbed('Comando Não Encontrado', `O comando \`/${commandName}\` não está registrado ou foi atualizado recentemente.\nPor favor, aguarde alguns segundos para o Discord sincronizar.`)],
           ephemeral: true
         }).catch(() => {});
       }
 
       try {
-        await command.execute(interaction, client);
+        await command.execute(interaction, activeClient);
       } catch (error) {
-        console.error(`❌ Erro ao executar /${interaction.commandName}:`, error);
+        console.error(`❌ Erro ao executar /${commandName}:`, error);
 
         const replyOptions = {
           embeds: [errorEmbed('Erro na Execução', 'Ocorreu um erro inesperado ao executar este comando.')],

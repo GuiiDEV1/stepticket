@@ -88,7 +88,7 @@ async function registerCommands(client) {
   const commandsArray = commandsList.map(c => c.data.toJSON());
   const token = process.env.DISCORD_TOKEN;
   const clientId = process.env.CLIENT_ID || (client.user ? client.user.id : null);
-  const guildId = process.env.GUILD_ID;
+  const explicitGuildId = process.env.GUILD_ID;
 
   if (!token) return;
   if (!clientId) {
@@ -101,19 +101,33 @@ async function registerCommands(client) {
   try {
     console.log('🔄 Registrando Slash Commands na API do Discord...');
 
-    if (guildId) {
+    // 1. Registro Instantâneo em cada servidor conectado
+    if (client.guilds && client.guilds.cache.size > 0) {
+      for (const [guildId, guild] of client.guilds.cache) {
+        try {
+          await rest.put(
+            Routes.applicationGuildCommands(clientId, guildId),
+            { body: commandsArray }
+          );
+          console.log(`⚡ Comandos atualizados INSTANTANEAMENTE no servidor: ${guild.name} (${guildId})`);
+        } catch (err) {
+          console.warn(`Aviso ao registrar comandos no servidor ${guildId}:`, err.message);
+        }
+      }
+    } else if (explicitGuildId) {
       await rest.put(
-        Routes.applicationGuildCommands(clientId, guildId),
+        Routes.applicationGuildCommands(clientId, explicitGuildId),
         { body: commandsArray }
       );
-      console.log(`✅ Slash Commands registrados no Servidor (Guild ID: ${guildId})!`);
-    } else {
-      await rest.put(
-        Routes.applicationCommands(clientId),
-        { body: commandsArray }
-      );
-      console.log('✅ Slash Commands registrados GLOBALMENTE com sucesso!');
+      console.log(`✅ Slash Commands registrados no Servidor (Guild ID: ${explicitGuildId})!`);
     }
+
+    // 2. Registro Global (Garante disponibilidade geral)
+    await rest.put(
+      Routes.applicationCommands(clientId),
+      { body: commandsArray }
+    );
+    console.log('✅ Slash Commands registrados GLOBALMENTE com sucesso!');
   } catch (error) {
     console.error('❌ Erro ao registrar Slash Commands na API:', error.message || error);
   }
