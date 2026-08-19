@@ -1,7 +1,7 @@
 @echo off
-title StepTicket Bot - Luqqzstrap
+title rikeozinho - Discord Bot
 echo ========================================================
-echo        INICIANDO STEPTICKET BOT EM SEGUNDO PLANO
+echo               INICIANDO RIKEOZINHO BOT
 echo ========================================================
 echo.
 node src/index.js

@@ -282,7 +282,7 @@ module.exports = {
           'Selecione uma das opções no menu abaixo para abrir um **ticket de atendimento privado** com a nossa equipe.\n\n' +
           '📌 **Categorias de Atendimento:**\n' +
           '• 🛠️ **Suporte Geral & Dúvidas:** Ajuda com o servidor ou ferramentas.\n' +
-          '• ⚡ **Luqqzstrap & FastFlags:** Suporte técnico para o bootstrapper.\n' +
+          '• ⚡ **FastFlags & Otimização:** Ajuda com configurações e Roblox.\n' +
           '• 🚨 **Denúncias:** Reporte de conduta inadequada de membros.\n' +
           '• 🛒 **Compras & Parcerias:** Informações comerciais.',
         color: COLORS.TICKET,
@@ -295,7 +295,7 @@ module.exports = {
           .setPlaceholder('Selecione o motivo do atendimento...')
           .addOptions([
             { label: 'Suporte Geral', description: 'Dúvidas e ajuda geral', emoji: '🛠️', value: 'suporte' },
-            { label: 'Luqqzstrap & Flags', description: 'Ajuda com FastFlags e bootstrapper', emoji: '⚡', value: 'luqqzstrap' },
+            { label: 'FastFlags & Otimização', description: 'Ajuda com flags e Roblox', emoji: '⚡', value: 'flags' },
             { label: 'Denúncia', description: 'Denunciar usuários ou infrações', emoji: '🚨', value: 'denuncia' },
             { label: 'Compras & Parcerias', description: 'Assuntos comerciais e VIP', emoji: '🛒', value: 'compras' }
           ])

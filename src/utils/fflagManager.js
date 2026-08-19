@@ -1,5 +1,5 @@
 /**
- * Gerenciador de FastFlags do Roblox e Integração com Offsets (Luqqzstrap / Bloxstrap)
+ * Gerenciador de FastFlags do Roblox e Integração com Offsets de Memória
  */
 
 let fflagCache = {
@@ -16,7 +16,7 @@ let offsetsCache = {
 
 const CACHE_TTL = 30 * 60 * 1000; // 30 minutos
 
-// Whitelist de flags populares e seguras usadas em Bootstrappers (Luqqzstrap/Bloxstrap)
+// Whitelist de flags populares e seguras usadas no Roblox e Bootstrappers
 const CURATED_KNOWN_FLAGS = {
   // FPS Unlock & Desempenho
   "DFIntTaskSchedulerTargetFps": { type: "int", desc: "Define o limite de FPS do jogo (ex: 240, 9999)" },

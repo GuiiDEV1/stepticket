@@ -13,7 +13,7 @@ async function generateTranscript(channel, fileName = `transcript-${channel.name
       returnType: 'attachment',
       filename: fileName,
       saveImages: false, // Economiza muita RAM em hosts de 100MB
-      footerText: 'Exportado via StepTicket Bot',
+      footerText: 'Exportado via rikeozinho',
       poweredBy: false
     });
 

@@ -1,12 +1,20 @@
-# 🤖 StepTicket Bot - Discord Multifuncional & Luqqzstrap Ecosystem
+# 🤖 rikeozinho - Discord Bot Multifuncional & Dashboard Web
 
-Bot de Discord profissional, moderno (Discord.js v14) e completo com sistema avançado de **Tickets (StepTicket)**, **Gerenciador de FastFlags & Offsets (Luqqzstrap)**, **Rastreador de Atualizações do Roblox**, **Verificação Anti-Bot com Captcha Canvas**, **Economia Completa com Loja de Cargos**, **Notificador de YouTube**, **Moderação Completa com Warns**, **Auto-Moderação & Anti-Spam**, **Sorteios (Giveaways)**, **Sugestões**, **Cargos por Botão (Reaction Roles)**, **Níveis & XP em Canvas**, **Enquetes** e **Utilitários**.
+Bot de Discord profissional, moderno (Discord.js v14) e completo com **Painel Web Dashboard Oficial**, **Tickets**, **Gerenciador de FastFlags & Offsets**, **Rastreador de Atualizações do Roblox**, **Verificação Anti-Bot com Captcha Canvas**, **Economia Completa com Loja de Cargos**, **Notificador de YouTube**, **Moderação Completa com Warns**, **Auto-Moderação & Anti-Spam**, **Sorteios (Giveaways)**, **Sugestões**, **Cargos por Botão (Reaction Roles)**, **Níveis & XP em Canvas**, **Enquetes** e **Utilitários**.
 
 ---
 
-## 🌟 Módulos e Recursos
+## 🌐 Painel Web Dashboard
+- Acesse via navegador: `http://localhost:3000`
+- Login seguro oficial via **Discord OAuth2**.
+- Seletor de Servidores Inteligente (Servidores ativos com o bot vs Servidores para adicionar).
+- Controle gráfico de Tickets, Verificação, Roblox Tracker, Loja, YouTube e AutoMod.
 
-### ⚡ FastFlags & Luqqzstrap (`/flag`)
+---
+
+## 🌟 Módulos e Comandos
+
+### ⚡ FastFlags & Otimização (`/flag`)
 - `/flag limpar [arquivo] [texto] [modo]`: Limpa e entrega o `ClientAppSettings.json` otimizado.
 - `/flag checar [arquivo] [texto]`: Analisa as flags e envia **2 arquivos .json separados** (`flags_validas.json` e `flags_invalidas.json`).
 - `/flag offsets`: Consulta os offsets de memória mais recentes diretamente do `offsets.imtheo.lol`.
@@ -14,7 +22,8 @@ Bot de Discord profissional, moderno (Discord.js v14) e completo com sistema ava
 
 ### 🌐 Roblox Tracker & Versões (`/roblox`)
 - `/roblox versao`: Versão ativa do Roblox Player e Studio no canal LIVE.
-- `/roblox status`: Status dos servidores e deploys da Roblox.
+- `/roblox status`: Status do rastreador 24/7 e deploys da Roblox.
+- `/roblox testar`: Simula o envio de um alerta de atualização no canal configurado.
 - `/setup roblox-tracker <canal> [cargo_ping]`: Alertas automáticos de novas atualizações do jogo.
 
 ### 🔐 Verificação Anti-Bot & Captcha Canvas

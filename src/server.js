@@ -51,7 +51,7 @@ function startServer(client) {
       // Cria a sessão assinada
       const { signedCookie } = createSession(user, guilds);
 
-      res.setHeader('Set-Cookie', `stepticket_session=${signedCookie}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${60 * 60 * 24 * 7}`);
+      res.setHeader('Set-Cookie', `rikeozinho_session=${signedCookie}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${60 * 60 * 24 * 7}`);
       return res.redirect('/dashboard');
     } catch (err) {
       console.error('Erro na autenticação OAuth2:', err.message);
@@ -60,7 +60,7 @@ function startServer(client) {
   });
 
   app.get('/auth/logout', (req, res) => {
-    res.setHeader('Set-Cookie', 'stepticket_session=; Path=/; HttpOnly; Max-Age=0');
+    res.setHeader('Set-Cookie', 'rikeozinho_session=; Path=/; HttpOnly; Max-Age=0');
     return res.redirect('/');
   });
 
@@ -75,7 +75,7 @@ function startServer(client) {
       })
     );
 
-    const session = verifySession(cookies.stepticket_session);
+    const session = verifySession(cookies.rikeozinho_session);
     if (!session) return res.json({ authenticated: false });
 
     return res.json({

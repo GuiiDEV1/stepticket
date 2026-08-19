@@ -14,20 +14,20 @@ module.exports = {
 
   async execute(interaction, client) {
     const mainEmbed = createEmbed({
-      title: '📚 Central de Ajuda - StepTicket & Luqqzstrap Bot',
-      description: 'Olá! Sou um bot completo para o seu servidor, equipado com sistema avançado de **Tickets, Luqqzstrap & FastFlags, Rastreador do Roblox, Verificação por Captcha, Economia Completa, Moderação, Sorteios, Notificador de YouTube e Utilitários**!\n\nSelecione uma categoria no menu abaixo para conferir os comandos disponíveis e como utilizá-los.',
+      title: '📚 Central de Ajuda • rikeozinho',
+      description: 'Olá! Eu sou o **rikeozinho**, seu bot multifuncional completo para o Discord! Estou equipado com **Tickets, Gerenciador de FastFlags, Rastreador de Atualizações do Roblox, Verificação por Captcha, Economia Completa, Moderação, Sorteios, Notificador de YouTube e Utilitários**!\n\nSelecione uma categoria no menu abaixo para conferir todos os comandos.',
       color: COLORS.PRIMARY,
       thumbnail: client.user.displayAvatarURL({ dynamic: true }),
       fields: [
-        { name: '⚡ FastFlags & Luqqzstrap', value: 'Limpar e validar flags, offsets imtheo.lol.', inline: true },
+        { name: '⚡ FastFlags & Otimização', value: 'Limpar e checar flags, offsets de memória.', inline: true },
         { name: '🌐 Roblox & Versões', value: 'Rastreador de deploy e versões LIVE da Roblox.', inline: true },
-        { name: '🔐 Verificação Anti-Bot', value: 'Painel com Captcha visual e botão seguro.', inline: true },
-        { name: '💰 Economia & Cassino', value: 'Daily, work, carteira, apostas e loja de cargos.', inline: true },
-        { name: '🎫 Tickets & Transcrições', value: 'Atendimento privado com logs em HTML.', inline: true },
-        { name: '🛡️ Moderação & Warns', value: 'Ban, kick, timeout, clear, warn, lock, nuke.', inline: true },
-        { name: '🤖 AutoMod', value: 'Anti-link, anti-invite, anti-spam em tempo real.', inline: true },
-        { name: '🎉 Sorteios & Sugestões', value: 'Giveaways interativos e votações da staff.', inline: true },
-        { name: '⚙️ Configuração (/setup)', value: 'Comandos administrativos para inicializar tudo.', inline: true }
+        { name: '🔐 Verificação Anti-Bot', value: 'Painel com Captcha visual em imagem Canvas.', inline: true },
+        { name: '💰 Economia & Minijogos', value: 'Daily, work, carteira, cassino e loja de cargos.', inline: true },
+        { name: '🎫 Tickets & Suporte', value: 'Atendimento privado com transcrições HTML.', inline: true },
+        { name: '🛡️ Moderação & Punições', value: 'Ban, kick, timeout, clear, warn, lock, nuke.', inline: true },
+        { name: '🤖 AutoMod em Tempo Real', value: 'Anti-link, anti-invite, anti-spam automático.', inline: true },
+        { name: '🎉 Sorteios & Comunidade', value: 'Giveaways com botões, enquetes e sugestões.', inline: true },
+        { name: '⚙️ Configuração (/setup)', value: 'Painéis administrativos e inicialização.', inline: true }
       ],
       footerText: 'Selecione uma categoria abaixo para ver os detalhes'
     });
@@ -43,7 +43,7 @@ module.exports = {
             .setEmoji('🏠')
             .setValue('help_home'),
           new StringSelectMenuOptionBuilder()
-            .setLabel('FastFlags & Luqqzstrap')
+            .setLabel('FastFlags & Otimização')
             .setDescription('/flag limpar, checar, offsets, info')
             .setEmoji('⚡')
             .setValue('help_flags'),
@@ -119,8 +119,8 @@ module.exports = {
         embedToEdit = mainEmbed;
       } else if (val === 'help_flags') {
         embedToEdit = createEmbed({
-          title: '⚡ Módulo FastFlags & Luqqzstrap (/flag)',
-          description: 'Gerenciador inteligente de FastFlags para Roblox e Luqqzstrap/Bloxstrap.\n\n' +
+          title: '⚡ Módulo FastFlags & Otimização (/flag)',
+          description: 'Gerenciador de FastFlags para Roblox e ClientAppSettings.json.\n\n' +
             '• `/flag limpar [arquivo] [texto] [modo]`: Limpa e entrega o arquivo `ClientAppSettings.json` 100% otimizado.\n' +
             '• `/flag checar [arquivo] [texto]`: Analisa as flags e envia 2 arquivos .json separados (`flags_validas.json` e `flags_invalidas.json`).\n' +
             '• `/flag offsets`: Consulta os offsets de memória mais recentes diretamente do `offsets.imtheo.lol`.\n' +
@@ -132,7 +132,8 @@ module.exports = {
           title: '🌐 Módulo Roblox Tracker & Deploys',
           description: 'Acompanhe em tempo real todas as versões oficiais da Roblox.\n\n' +
             '• `/roblox versao`: Mostra a versão ativa no canal LIVE, hash de upload e links de download direto.\n' +
-            '• `/roblox status`: Status dos serviços da Roblox.\n' +
+            '• `/roblox status`: Status dos serviços da Roblox e canal monitorado.\n' +
+            '• `/roblox testar`: Simula o envio de um alerta de atualização no canal configurado.\n' +
             '• `/setup roblox-tracker <canal> [cargo_ping]`: Configura notificações automáticas no canal assim que a Roblox lançar um novo deploy!',
           color: COLORS.PRIMARY
         });
@@ -154,7 +155,7 @@ module.exports = {
       } else if (val === 'help_verify') {
         embedToEdit = createEmbed({
           title: '🔐 Módulo de Verificação de Segurança (Anti-Bot)',
-          description: 'Proteja seu servidor contra bots e raids com verificação interativa.\n\n' +
+          description: 'Proteja seu servidor contra bots e invasões com verificação interativa.\n\n' +
             '• `/setup verify <canal> <cargo_membro> [tipo]`: Envia o painel oficial de verificação.\n' +
             '  - **Tipo Captcha:** Gera dinamicamente uma imagem distorcida de 6 caracteres via Canvas.\n' +
             '  - **Tipo Botão:** Verificação rápida com 1 clique.\n\n' +
@@ -163,8 +164,8 @@ module.exports = {
         });
       } else if (val === 'help_tickets') {
         embedToEdit = createEmbed({
-          title: '🎫 Módulo de Tickets (StepTicket)',
-          description: 'Sistema completo para atendimento privado com transcrições automáticas em HTML.\n\n' +
+          title: '🎫 Módulo de Tickets & Atendimento',
+          description: 'Sistema completo para suporte privado com transcrições automáticas em HTML.\n\n' +
             '• `/setup ticket`: Configura e envia o painel de abertura de tickets no canal.\n' +
             '• `/ticket fechar [motivo]`: Encerra o ticket, gera transcrição e envia nos logs e na DM.\n' +
             '• `/ticket reabrir`: Reabre um ticket que foi finalizado.\n' +
@@ -188,7 +189,7 @@ module.exports = {
             '• `/lock [motivo]`: Tranca o canal para membros normais.\n' +
             '• `/unlock`: Destranca o canal.\n' +
             '• `/slowmode <segundos>`: Define tempo de espera entre mensagens.\n' +
-            '• `/nuke`: Recria e limpa o canal mantendo todas as permissões intactas.\n' +
+            '• `/nuke` : Recria e limpa o canal mantendo todas as permissões intactas.\n' +
             '• `/role add|remove <usuario> <cargo>`: Adiciona ou remove cargos.\n' +
             '• `/warn <usuario> <motivo>`: Aplica uma advertência formal persistente.\n' +
             '• `/warnings <usuario>`: Consulta o histórico de advertências.\n' +

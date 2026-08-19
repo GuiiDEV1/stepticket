@@ -76,7 +76,7 @@ async function checkRobloxUpdates(client) {
               `**Nova Versão:** \`${currentVersion}\`\n` +
               `**Hash de Deploy:** \`${currentUpload}\`\n` +
               `**Versão Anterior:** \`${oldVersion}\` (\`${oldUpload}\`)\n\n` +
-              `⚠️ **Aviso para usuários de Luqqzstrap / Bloxstrap:**\n` +
+              `⚠️ **Aviso para usuários de FastFlags:**\n` +
               `Seus offsets de memória e FastFlags podem ter sido modificados. Use \`/flag checar\` e \`/flag offsets\` para validar suas configurações!`,
             color: COLORS.SUCCESS,
             thumbnail: 'https://i.imgur.com/8Q9bZ8R.png',

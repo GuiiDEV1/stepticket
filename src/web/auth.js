@@ -122,7 +122,7 @@ function requireAuth(req, res, next) {
     })
   );
 
-  const session = verifySession(cookies.stepticket_session);
+  const session = verifySession(cookies.rikeozinho_session);
   if (!session) {
     return res.status(401).json({ error: 'Sessão expirada ou inválida' });
   }

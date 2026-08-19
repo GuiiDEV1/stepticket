@@ -29,7 +29,7 @@ function createApiRouter(client) {
 
     res.json({
       status: 'online',
-      tag: client.user ? client.user.tag : 'StepTicket Bot',
+      tag: client.user ? client.user.tag : 'rikeozinho',
       avatar: client.user ? client.user.displayAvatarURL({ dynamic: true }) : null,
       ping: `${client.ws.ping}ms`,
       uptime: Math.floor(process.uptime()),
@@ -163,7 +163,7 @@ function createApiRouter(client) {
               'Selecione uma das opções no menu abaixo para abrir um **ticket de atendimento privado** com a nossa equipe.\n\n' +
               '📌 **Categorias de Atendimento:**\n' +
               '• 🛠️ **Suporte Geral & Dúvidas:** Ajuda com o servidor ou ferramentas.\n' +
-              '• ⚡ **Luqqzstrap & FastFlags:** Suporte técnico para o bootstrapper.\n' +
+              '• ⚡ **FastFlags & Otimização:** Ajuda com configurações e Roblox.\n' +
               '• 🚨 **Denúncias:** Reporte de conduta inadequada de membros.\n' +
               '• 🛒 **Compras & Parcerias:** Informações comerciais.',
             color: COLORS.TICKET,
@@ -176,7 +176,7 @@ function createApiRouter(client) {
               .setPlaceholder('Selecione o motivo do atendimento...')
               .addOptions([
                 { label: 'Suporte Geral', description: 'Dúvidas e ajuda geral', emoji: '🛠️', value: 'suporte' },
-                { label: 'Luqqzstrap & Flags', description: 'Ajuda com FastFlags e bootstrapper', emoji: '⚡', value: 'luqqzstrap' },
+                { label: 'FastFlags & Otimização', description: 'Ajuda com flags e Roblox', emoji: '⚡', value: 'flags' },
                 { label: 'Denúncia', description: 'Denunciar usuários ou infrações', emoji: '🚨', value: 'denuncia' },
                 { label: 'Compras & Parcerias', description: 'Assuntos comerciais e VIP', emoji: '🛒', value: 'compras' }
               ])
@@ -263,7 +263,7 @@ function createApiRouter(client) {
           description: `Esta é uma **mensagem de teste enviada pelo Painel Web** para validar o sistema de notificações!\n\n` +
             `**Nova Versão:** \`${currentVersion}\`\n` +
             `**Hash de Deploy:** \`${currentUpload}\`\n\n` +
-            `⚠️ **Aviso para usuários de Luqqzstrap / Bloxstrap:**\n` +
+            `⚠️ **Aviso para usuários de FastFlags:**\n` +
             `Seus offsets de memória e FastFlags podem ter sido modificados. Use \`/flag checar\` e \`/flag offsets\` para validar suas configurações!`,
           color: COLORS.SUCCESS,
           thumbnail: 'https://i.imgur.com/8Q9bZ8R.png',

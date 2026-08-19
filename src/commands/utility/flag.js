@@ -8,7 +8,7 @@ const cooldowns = new Map();
 module.exports = {
   data: new SlashCommandBuilder()
     .setName('flag')
-    .setDescription('Comandos de verificação, limpeza e offsets de FastFlags para Luqqzstrap / Bloxstrap')
+    .setDescription('Comandos de verificação, limpeza e offsets de FastFlags para Roblox')
     // Subcomando: Limpar
     .addSubcommand(sub =>
       sub
@@ -112,7 +112,7 @@ module.exports = {
 
       const offsetsEmbed = createEmbed({
         title: '⚡ Roblox Memory Offsets (imtheo.lol)',
-        description: `Informações de offsets de memória sincronizados para o **Luqqzstrap / Bootstrappers**.\n\n` +
+        description: `Informações de offsets de memória sincronizados do **Roblox**.\n\n` +
           `**Versão do Roblox:** \`${robloxVersion}\`\n` +
           `**Total de Offsets:** \`${totalOffsets} offsets\`\n` +
           `**Dumper:** \`${dumperVersion}\`\n` +
@@ -232,8 +232,8 @@ module.exports = {
         const invalidAttachment = new AttachmentBuilder(invalidBuffer, { name: 'flags_invalidas.json' });
 
         const checkEmbed = createEmbed({
-          title: '🔍 Checagem de FastFlags (Luqqzstrap)',
-          description: `Analisei **${stats.totalInput}** flags. Abaixo estão os **2 arquivos .json** no formato padrão de bootstrapper (um apenas com as válidas e outro com as inválidas/não encontradas).`,
+          title: '🔍 Checagem de FastFlags',
+          description: `Analisei **${stats.totalInput}** flags. Abaixo estão os **2 arquivos .json** no formato padrão de FastFlags (um apenas com as válidas e outro com as inválidas/não encontradas).`,
           color: stats.invalidCount > 0 ? COLORS.WARNING : COLORS.SUCCESS,
           fields: [
             { name: '🟢 Arquivo 1: `flags_validas.json`', value: `\`${stats.validKept}\` flags ativas que funcionam`, inline: false },
@@ -266,15 +266,15 @@ module.exports = {
       });
 
       const cleanEmbed = createEmbed({
-        title: '🧹 FastFlags Limpas e Otimizadas (Luqqzstrap)',
-        description: `Todas as **${stats.validKept}** flags válidas foram salvas no arquivo **\`ClientAppSettings.json\`** pronto para uso no seu bootstrapper.`,
+        title: '🧹 FastFlags Limpas e Otimizadas',
+        description: `Todas as **${stats.validKept}** flags válidas foram salvas no arquivo **\`ClientAppSettings.json\`** pronto para uso no seu Roblox.`,
         color: stats.removedDangerous.length > 0 ? COLORS.WARNING : COLORS.SUCCESS,
         fields: [
           { name: '✅ Flags Válidas Mantidas', value: `\`${stats.validKept}\` flags`, inline: true },
           { name: '🔧 Tipos Corrigidos', value: `\`${stats.corrected.length}\` correções`, inline: true },
           { name: '🗑️ Inválidas / Removidas', value: `\`${stats.invalidCount}\` flags`, inline: true }
         ],
-        footerText: 'Pronto para download e uso imediato no Luqqzstrap/Bloxstrap'
+        footerText: 'Pronto para download e uso imediato no ClientAppSettings.json'
       });
 
       if (stats.removedDangerous.length > 0) {

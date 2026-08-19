@@ -4,7 +4,7 @@ const { createEmbed, warningEmbed, COLORS } = require('../../utils/embedBuilder.
 const ms = require('ms');
 
 const WORK_JOBS = [
-  { job: 'Desenvolveu uma nova função para o Luqqzstrap', min: 250, max: 550 },
+  { job: 'Programou uma nova função incrível para o bot', min: 250, max: 550 },
   { job: 'Ajudou um membro no suporte de Tickets', min: 200, max: 450 },
   { job: 'Otimizou as FastFlags de um servidor inteiro', min: 300, max: 600 },
   { job: 'Criou um script para Roblox e vendeu com sucesso', min: 350, max: 700 },

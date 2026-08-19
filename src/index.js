@@ -51,7 +51,7 @@ process.on('uncaughtException', (err, origin) => {
 
 // Inicialização
 async function main() {
-  console.log('🚀 Inicializando StepTicket Bot (Modo Low-Memory)...');
+  console.log('🚀 Inicializando rikeozinho (Modo Low-Memory)...');
 
   // 1. Carregar Comandos na memória
   loadCommands(client);

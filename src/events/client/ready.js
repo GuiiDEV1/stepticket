@@ -18,16 +18,16 @@ module.exports = {
     // Definir presença inicial
     try {
       client.user.setPresence({
-        activities: [{ name: '/help | Luqqzstrap & Tickets', type: ActivityType.Playing }],
+        activities: [{ name: '/help | rikeozinho', type: ActivityType.Playing }],
         status: 'online'
       });
     } catch (err) {}
 
     // Alternância de status a cada 15 segundos
     const activities = [
-      { name: '/help | Luqqzstrap & FastFlags', type: ActivityType.Playing },
+      { name: '/help | rikeozinho', type: ActivityType.Playing },
       { name: `${client.guilds.cache.size} servidores!`, type: ActivityType.Watching },
-      { name: 'Tickets e Economia', type: ActivityType.Listening }
+      { name: 'FastFlags, Tickets & Economia', type: ActivityType.Listening }
     ];
 
     let currentActivity = 0;

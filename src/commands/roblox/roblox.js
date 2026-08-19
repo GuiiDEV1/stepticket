@@ -69,7 +69,7 @@ module.exports = {
           `**Nova Versão:** \`${currentVersion}\`\n` +
           `**Hash de Deploy:** \`${currentUpload}\`\n` +
           `**Versão Anterior:** \`0.734.0.0\` (\`version-exemplo12345\`)\n\n` +
-          `⚠️ **Aviso para usuários de Luqqzstrap / Bloxstrap:**\n` +
+          `⚠️ **Aviso para usuários de FastFlags:**\n` +
           `Seus offsets de memória e FastFlags podem ter sido modificados. Use \`/flag checar\` e \`/flag offsets\` para validar suas configurações!`,
         color: COLORS.SUCCESS,
         thumbnail: 'https://i.imgur.com/8Q9bZ8R.png',
@@ -153,7 +153,7 @@ module.exports = {
           inline: false
         },
         {
-          name: '⚡ Bootstrappers (Luqqzstrap / Bloxstrap)',
+          name: '⚡ Bootstrappers & FastFlags',
           value: `Use \`/flag offsets\` para checar os offsets compatíveis com a versão atual (\`${player.version}\`).`,
           inline: false
         }
