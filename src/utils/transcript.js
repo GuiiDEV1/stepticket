@@ -85,7 +85,38 @@ function getTranscriptFilePath(id) {
   return null;
 }
 
+/**
+ * Remove transcrições mais antigas que a quantidade de dias especificada (Gerenciamento de Disco)
+ * @param {number} maxAgeDays 
+ * @returns {number} Quantidade de arquivos removidos
+ */
+function cleanOldTranscripts(maxAgeDays = 90) {
+  try {
+    if (!fs.existsSync(transcriptsDir)) return 0;
+    const files = fs.readdirSync(transcriptsDir);
+    const now = Date.now();
+    const maxAgeMs = maxAgeDays * 24 * 60 * 60 * 1000;
+    let deletedCount = 0;
+
+    for (const file of files) {
+      const fullPath = path.join(transcriptsDir, file);
+      try {
+        const stats = fs.statSync(fullPath);
+        if (now - stats.mtimeMs > maxAgeMs) {
+          fs.unlinkSync(fullPath);
+          deletedCount++;
+        }
+      } catch (err) {}
+    }
+    return deletedCount;
+  } catch (e) {
+    console.warn('[TRANSCRIPTS] Erro ao limpar transcrições antigas:', e.message);
+    return 0;
+  }
+}
+
 module.exports = {
   generateTranscript,
-  getTranscriptFilePath
+  getTranscriptFilePath,
+  cleanOldTranscripts
 };

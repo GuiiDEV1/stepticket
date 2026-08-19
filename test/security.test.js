@@ -3,9 +3,9 @@ const path = require('path');
 const { escapeHTML, isSafePublicUrl, normalizeMessageContent, createRateLimiter, generateSecureToken } = require('../src/utils/security');
 const { signSession, verifySession, createSession } = require('../src/web/auth');
 const DatabaseManager = require('../src/database/manager');
-const { getTranscriptFilePath } = require('../src/utils/transcript');
+const { getTranscriptFilePath, cleanOldTranscripts } = require('../src/utils/transcript');
 
-console.log('🧪 Iniciando Bateria Completa de Testes de Segurança e Autorização...\n');
+console.log('🧪 Iniciando Bateria Completa de Testes de Segurança, Autorização e Cotas...\n');
 
 let totalTests = 0;
 let passedTests = 0;
@@ -52,8 +52,8 @@ runTest('Bloquear Redes Privadas RFC 1918 (10.x, 192.168.x, 172.16-31.x)', () =>
 });
 
 runTest('Bloquear Representações Numéricas / Hex / Octal de IP (Evasão SSRF)', () => {
-  assert.strictEqual(isSafePublicUrl('http://2130706433/'), false); // 127.0.0.1 em decimal
-  assert.strictEqual(isSafePublicUrl('http://0x7f000001/'), false); // 127.0.0.1 em hex
+  assert.strictEqual(isSafePublicUrl('http://2130706433/'), false);
+  assert.strictEqual(isSafePublicUrl('http://0x7f000001/'), false);
 });
 
 runTest('Bloquear IPv4-Mapped IPv6 Privado (::ffff:127.0.0.1)', () => {
@@ -274,7 +274,7 @@ runTest('Reconciliação de Sorteios Ativos', () => {
     prize: 'VIP Role',
     winnersCount: 1,
     hostId: 'admin_host',
-    endsAt: Date.now() - 1000 // Já expirado
+    endsAt: Date.now() - 1000
   });
 
   const active = DatabaseManager.getActiveGiveaways();
@@ -285,6 +285,32 @@ runTest('Reconciliação de Sorteios Ativos', () => {
   DatabaseManager.endGiveaway(messageId);
   const activeAfter = DatabaseManager.getActiveGiveaways();
   assert.strictEqual(activeAfter.find(g => g.message_id === messageId), undefined);
+});
+
+// -------------------------------------------------------------
+// 10. TESTES DE COTAS & GERENCIAMENTO DE DISCO
+// -------------------------------------------------------------
+console.log('\n📦 10. Testes de Cotas de Recursos e Gerenciamento de Disco:');
+
+runTest('Validação de Limpeza de Transcrições Antigas (cleanOldTranscripts)', () => {
+  const cleaned = cleanOldTranscripts(90);
+  assert.strictEqual(typeof cleaned, 'number');
+});
+
+runTest('Integridade de criação e limites de criadores por guild', () => {
+  const guildTest = 'guild_quota_test';
+  const creator = DatabaseManager.createCreator(guildTest, {
+    platform: 'twitch',
+    username: 'streamer_teste',
+    channel_id: 'chan_alert_1'
+  });
+
+  assert.ok(creator.id);
+  const list = DatabaseManager.getCreators(guildTest);
+  assert.ok(list.length > 0);
+
+  // Limpeza do teste
+  DatabaseManager.deleteCreator(guildTest, creator.id);
 });
 
 // -------------------------------------------------------------

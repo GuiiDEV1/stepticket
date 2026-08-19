@@ -1,6 +1,19 @@
 const { SlashCommandBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } = require('discord.js');
 const DatabaseManager = require('../../database/manager');
-const { createEmbed, errorEmbed, successEmbed, COLORS } = require('../../utils/embedBuilder');
+const { createEmbed, errorEmbed, successEmbed, warningEmbed, COLORS } = require('../../utils/embedBuilder');
+
+// Cache em memória para Cooldown de sugestões por usuário (Map: userId -> timestamp)
+const suggestionCooldowns = new Map();
+
+// Limpeza automática a cada 10 minutos
+setInterval(() => {
+  const now = Date.now();
+  for (const [userId, lastUsed] of suggestionCooldowns.entries()) {
+    if (now - lastUsed > 300000) {
+      suggestionCooldowns.delete(userId);
+    }
+  }
+}, 600000);
 
 module.exports = {
   data: new SlashCommandBuilder()
@@ -15,6 +28,19 @@ module.exports = {
     ),
 
   async execute(interaction, client) {
+    // 1. Verificação de Cooldown Anti-Spam (180 segundos = 3 minutos)
+    const now = Date.now();
+    const lastUsed = suggestionCooldowns.get(interaction.user.id);
+    const cooldownTime = 180 * 1000;
+
+    if (lastUsed && now - lastUsed < cooldownTime) {
+      const remainingSeconds = Math.ceil((cooldownTime - (now - lastUsed)) / 1000);
+      return interaction.reply({
+        embeds: [warningEmbed('Aguarde um Momento', `Você já enviou uma sugestão recentemente. Por favor, aguarde mais **${remainingSeconds}s** antes de enviar outra.`)],
+        ephemeral: true
+      });
+    }
+
     const config = DatabaseManager.getConfig(interaction.guild.id);
 
     if (!config.suggestions_channel_id) {
@@ -84,6 +110,9 @@ module.exports = {
       authorId: interaction.user.id,
       text
     });
+
+    // Registra timestamp do cooldown
+    suggestionCooldowns.set(interaction.user.id, now);
 
     return interaction.reply({
       embeds: [successEmbed('Sugestão Enviada!', `Sua sugestão foi publicada com sucesso em ${suggestChannel}! Obrigado por contribuir.`)],

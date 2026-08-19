@@ -404,6 +404,11 @@ function createApiRouter(client) {
       return res.status(400).json({ error: 'Preço deve ser um número positivo maior que zero.' });
     }
 
+    const currentShop = DatabaseManager.getShopItems(guildId);
+    if (currentShop.length >= 25) {
+      return res.status(400).json({ error: 'Limite máximo de 25 itens na loja atingido para este servidor.' });
+    }
+
     const item = DatabaseManager.addShopItem({
       guildId,
       roleId: role.id,
@@ -646,6 +651,11 @@ function createApiRouter(client) {
       return res.status(400).json({ error: 'Canal e mensagem são obrigatórios.' });
     }
 
+    const currentAnnouncements = DatabaseManager.getAnnouncements(guildId);
+    if (currentAnnouncements.length >= 15) {
+      return res.status(400).json({ error: 'Limite máximo de 15 avisos agendados atingido para este servidor.' });
+    }
+
     const item = DatabaseManager.createAnnouncement(guildId, {
       channel_id: channelId,
       title: title || null,
@@ -747,6 +757,11 @@ function createApiRouter(client) {
 
     if (!platform || !username || !channelId) {
       return res.status(400).json({ error: 'Preencha a plataforma, o nome do criador e o canal de envio.' });
+    }
+
+    const currentCreators = DatabaseManager.getCreators(guildId);
+    if (currentCreators.length >= 10) {
+      return res.status(400).json({ error: 'Limite máximo de 10 criadores monitorados atingido para este servidor.' });
     }
 
     const item = DatabaseManager.createCreator(guildId, {

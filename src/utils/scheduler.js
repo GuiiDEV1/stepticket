@@ -1,10 +1,12 @@
 const DatabaseManager = require('../database/manager');
 const { createEmbed, COLORS } = require('./embedBuilder');
+const { cleanOldTranscripts } = require('./transcript');
 
 let schedulerInterval = null;
+let lastCleanup = 0;
 
 /**
- * Inicializa o loop de checagem e disparo de mensagens agendadas
+ * Inicializa o loop de checagem e disparo de mensagens agendadas e limpeza de disco
  * @param {import('discord.js').Client} client 
  */
 function startScheduler(client) {
@@ -12,10 +14,22 @@ function startScheduler(client) {
 
   console.log('⏰ Inicializando Scheduler de Avisos Automáticos...');
 
+  // Limpeza inicial de transcrições antigas (>90 dias)
+  try {
+    cleanOldTranscripts(90);
+  } catch (e) {}
+
   schedulerInterval = setInterval(async () => {
     try {
-      const activeAnnouncements = DatabaseManager.getAllActiveAnnouncements();
       const now = Date.now();
+
+      // Rotina diária de limpeza de arquivos antigos (a cada 24 horas)
+      if (now - lastCleanup > 24 * 60 * 60 * 1000) {
+        lastCleanup = now;
+        cleanOldTranscripts(90);
+      }
+
+      const activeAnnouncements = DatabaseManager.getAllActiveAnnouncements();
 
       for (const ann of activeAnnouncements) {
         const intervalMs = (parseInt(ann.interval_minutes) || 60) * 60 * 1000;
