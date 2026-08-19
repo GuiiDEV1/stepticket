@@ -5,7 +5,7 @@ const { signSession, verifySession, createSession } = require('../src/web/auth')
 const DatabaseManager = require('../src/database/manager');
 const { getTranscriptFilePath, cleanOldTranscripts } = require('../src/utils/transcript');
 
-console.log('🧪 Iniciando Bateria Completa de Testes de Segurança, Autorização e Cotas...\n');
+console.log('🧪 Iniciando Bateria Completa de Testes de Segurança, Autorização, Cotas e Concorrência...\n');
 
 let totalTests = 0;
 let passedTests = 0;
@@ -210,7 +210,7 @@ runTest('Bloquear IDs com caracteres maliciosos', () => {
 });
 
 // -------------------------------------------------------------
-// 8. TESTES DE ECONOMIA ATÔMICA
+// 8. TESTES DE ECONOMIA ATÔMICA & APOSTAS
 // -------------------------------------------------------------
 console.log('\n💰 8. Testes de Consistência da Economia:');
 
@@ -238,6 +238,24 @@ runTest('Operação de Débito e Estorno Atômico', () => {
 
   DatabaseManager.addWallet(guildId, userId, 400);
   assert.strictEqual(DatabaseManager.getEconomy(guildId, userId).wallet, initialWallet);
+});
+
+runTest('Prevenção de Race Condition em Apostas (Débito Imediato)', () => {
+  const guildId = 'test_bet_guild';
+  const userId = 'test_bet_user';
+
+  // Configura saldo exato de 100
+  const eco = DatabaseManager.getEconomy(guildId, userId);
+  if (eco.wallet > 0) DatabaseManager.removeWallet(guildId, userId, eco.wallet);
+  DatabaseManager.addWallet(guildId, userId, 100);
+
+  // Primeira aposta de 100 debita com sucesso
+  const bet1 = DatabaseManager.removeWallet(guildId, userId, 100);
+  assert.strictEqual(bet1, true);
+
+  // Segunda aposta simultânea de 100 DEVE FALHAR (saldo esgotado)
+  const bet2 = DatabaseManager.removeWallet(guildId, userId, 100);
+  assert.strictEqual(bet2, false);
 });
 
 // -------------------------------------------------------------

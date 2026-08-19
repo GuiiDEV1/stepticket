@@ -19,16 +19,17 @@ module.exports = {
     const betAmount = interaction.options.getInteger('quantidade');
     const guildId = interaction.guild.id;
     const userId = interaction.user.id;
-    const eco = DatabaseManager.getEconomy(guildId, userId);
 
-    if (eco.wallet < betAmount) {
+    // 1. Débito Atômico Imediato (Previne Race Conditions de múltiplas apostas concorrentes)
+    const deducted = DatabaseManager.removeWallet(guildId, userId, betAmount);
+    if (!deducted) {
       return interaction.reply({
         embeds: [errorEmbed('Saldo Insuficiente', `Você precisa de pelo menos **🪙 ${betAmount.toLocaleString('pt-BR')} Coins** na carteira para apostar.`)],
         ephemeral: true
       });
     }
 
-    // Chance de vitória: 48% (Multiplicador 2x) | 7% (Jackpot 3x) | 45% (Derrota)
+    // 2. Chance de vitória: 48% (Multiplicador 2x) | 7% (Jackpot 3x) | 45% (Derrota)
     const roll = Math.random() * 100;
     let won = false;
     let multiplier = 0;
@@ -47,14 +48,15 @@ module.exports = {
     }
 
     if (won) {
-      const winnings = betAmount * (multiplier - 1);
-      DatabaseManager.addWallet(guildId, userId, winnings);
+      const totalPayout = betAmount * multiplier;
+      const profit = betAmount * (multiplier - 1);
+      DatabaseManager.addWallet(guildId, userId, totalPayout);
       const updated = DatabaseManager.getEconomy(guildId, userId);
 
       const embed = createEmbed({
         title: multiplier === 3 ? '🎰 💥 JACKPOT INCRÍVEL! 💥 🎰' : '🎰 🎉 VOCÊ VENCEU A APOSTA! 🎉',
         description: `Você apostou **🪙 ${betAmount.toLocaleString('pt-BR')}** e multiplicou seus ganhos por **${multiplier}x**!\n\n` +
-          `**Lucro Obtido:** \`+🪙 ${winnings.toLocaleString('pt-BR')} Coins\`\n` +
+          `**Lucro Obtido:** \`+🪙 ${profit.toLocaleString('pt-BR')} Coins\`\n` +
           `**Saldo Atual na Carteira:** \`🪙 ${updated.wallet.toLocaleString('pt-BR')} Coins\``,
         color: multiplier === 3 ? '#FFD700' : COLORS.SUCCESS,
         footerText: 'Jogue com responsabilidade'
@@ -62,7 +64,6 @@ module.exports = {
 
       return interaction.reply({ embeds: [embed] });
     } else {
-      DatabaseManager.removeWallet(guildId, userId, betAmount);
       const updated = DatabaseManager.getEconomy(guildId, userId);
 
       const embed = createEmbed({

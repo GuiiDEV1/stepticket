@@ -1,6 +1,28 @@
 const { createCanvas, loadImage } = require('@napi-rs/canvas');
 const { AttachmentBuilder } = require('discord.js');
 
+// Semáforo para limitar a concorrência de renderização a no máximo 3 processos simultâneos
+let activeRenders = 0;
+const MAX_CONCURRENT_RENDERS = 3;
+const renderQueue = [];
+
+function acquireSlot() {
+  if (activeRenders < MAX_CONCURRENT_RENDERS) {
+    activeRenders++;
+    return Promise.resolve();
+  }
+  return new Promise(resolve => renderQueue.push(resolve));
+}
+
+function releaseSlot() {
+  activeRenders--;
+  if (renderQueue.length > 0) {
+    activeRenders++;
+    const next = renderQueue.shift();
+    next();
+  }
+}
+
 /**
  * Desenha um retângulo com cantos arredondados
  */
@@ -19,18 +41,9 @@ function roundRect(ctx, x, y, width, height, radius) {
 }
 
 /**
- * Gera um cartão de boas-vindas em alta definição
- * @param {Object} options
- * @param {string} options.username
- * @param {string} options.avatarURL
- * @param {number} options.memberCount
- * @param {string} options.guildName
- * @param {string} [options.title]
- * @param {string} [options.color1]
- * @param {string} [options.color2]
- * @param {string} [options.backgroundImageUrl]
+ * Renderiza internamente o cartão de boas-vindas
  */
-async function generateWelcomeCard({
+async function renderCard({
   username,
   avatarURL,
   memberCount,
@@ -185,6 +198,18 @@ async function generateWelcomeCard({
 
   const buffer = await canvas.encode('png');
   return new AttachmentBuilder(buffer, { name: 'welcome-card.png' });
+}
+
+/**
+ * Gera um cartão de boas-vindas em alta definição respeitando o limite de concorrência
+ */
+async function generateWelcomeCard(options) {
+  await acquireSlot();
+  try {
+    return await renderCard(options);
+  } finally {
+    releaseSlot();
+  }
 }
 
 module.exports = {
