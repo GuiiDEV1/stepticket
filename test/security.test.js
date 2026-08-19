@@ -1,11 +1,11 @@
 const assert = require('assert');
 const path = require('path');
-const { escapeHTML, isSafePublicUrl, generateSecureToken } = require('../src/utils/security');
+const { escapeHTML, isSafePublicUrl, normalizeMessageContent, createRateLimiter, generateSecureToken } = require('../src/utils/security');
 const { signSession, verifySession, createSession } = require('../src/web/auth');
 const DatabaseManager = require('../src/database/manager');
 const { getTranscriptFilePath } = require('../src/utils/transcript');
 
-console.log('🧪 Iniciando Bateria de Testes Automatizados de Segurança...\n');
+console.log('🧪 Iniciando Bateria Expandida de Testes Automatizados de Segurança...\n');
 
 let totalTests = 0;
 let passedTests = 0;
@@ -23,7 +23,7 @@ function runTest(name, fn) {
 }
 
 // -------------------------------------------------------------
-// 1. TESTES ANTI-SSRF
+// 1. TESTES ANTI-SSRF (INCLUINDO NOTAÇÕES AVANÇADAS)
 // -------------------------------------------------------------
 console.log('🔒 1. Testes de Proteção Anti-SSRF:');
 
@@ -42,12 +42,23 @@ runTest('Bloquear Localhost e domínios locais', () => {
 runTest('Bloquear AWS / Cloud Metadata (169.254.169.254)', () => {
   assert.strictEqual(isSafePublicUrl('http://169.254.169.254/latest/meta-data/'), false);
   assert.strictEqual(isSafePublicUrl('http://metadata.google.internal/computeMetadata/v1/'), false);
+  assert.strictEqual(isSafePublicUrl('http://instance-data/latest/meta-data/'), false);
 });
 
 runTest('Bloquear Redes Privadas RFC 1918 (10.x, 192.168.x, 172.16-31.x)', () => {
   assert.strictEqual(isSafePublicUrl('http://10.0.0.1/'), false);
   assert.strictEqual(isSafePublicUrl('http://192.168.1.1/router'), false);
   assert.strictEqual(isSafePublicUrl('http://172.20.0.1:8080/'), false);
+});
+
+runTest('Bloquear Representações Numéricas / Hex / Octal de IP (Evasão SSRF)', () => {
+  assert.strictEqual(isSafePublicUrl('http://2130706433/'), false); // 127.0.0.1 em decimal
+  assert.strictEqual(isSafePublicUrl('http://0x7f000001/'), false); // 127.0.0.1 em hex
+});
+
+runTest('Bloquear IPv4-Mapped IPv6 Privado (::ffff:127.0.0.1)', () => {
+  assert.strictEqual(isSafePublicUrl('http://[::ffff:127.0.0.1]/'), false);
+  assert.strictEqual(isSafePublicUrl('http://[::ffff:10.0.0.1]/'), false);
 });
 
 runTest('Bloquear Protocolos Perigosos (file, ftp, gopher)', () => {
@@ -83,9 +94,65 @@ runTest('Lidar com strings nulas ou indefinidas com segurança', () => {
 });
 
 // -------------------------------------------------------------
-// 3. TESTES DE SESSÃO & ASSINATURA HMAC
+// 3. TESTES DE NORMALIZAÇÃO AUTOMOD & ZERO-WIDTH EVASION
 // -------------------------------------------------------------
-console.log('\n🔑 3. Testes de Autenticação e HMAC:');
+console.log('\n🔤 3. Testes de Normalização Anti-Evasão (AutoMod):');
+
+runTest('Remover Zero-Width Spaces e caracteres invisíveis de links proibidos', () => {
+  // "discord.gg/invite" intercalado com zero-width spaces
+  const stealthInvite = 'dis\u200Bcord.\u200Cgg/in\u200Dvite123';
+  const cleaned = normalizeMessageContent(stealthInvite);
+  assert.strictEqual(cleaned, 'discord.gg/invite123');
+
+  const discordInviteRegex = /(discord\.(gg|io|me|li)|discordapp\.com\/invite|discord\.com\/invite)\/[a-zA-Z0-9_-]+/gi;
+  assert.strictEqual(discordInviteRegex.test(cleaned), true);
+});
+
+runTest('Normalizar homóglifos e acentuação Unicode (NFKD)', () => {
+  const textWithAccents = 'Pálávra Próíbidá';
+  const normalized = normalizeMessageContent(textWithAccents);
+  assert.ok(normalized.length > 0);
+});
+
+// -------------------------------------------------------------
+// 4. TESTES DE RATE LIMITING
+// -------------------------------------------------------------
+console.log('\n⏱️ 4. Testes de Rate Limiting:');
+
+runTest('Permitir requisições dentro da cota e bloquear com 429 ao exceder', () => {
+  const limiter = createRateLimiter({ windowMs: 10000, max: 2, message: 'Limite atingido' });
+  const mockReq = { ip: '192.0.2.1', baseUrl: '/api', path: '/test' };
+  
+  let nextCalled = 0;
+  let statusResult = null;
+  let jsonResult = null;
+  const mockRes = {
+    setHeader: () => {},
+    status: (s) => {
+      statusResult = s;
+      return { json: (j) => { jsonResult = j; } };
+    }
+  };
+
+  // Req 1 -> Passa
+  limiter(mockReq, mockRes, () => { nextCalled++; });
+  assert.strictEqual(nextCalled, 1);
+
+  // Req 2 -> Passa
+  limiter(mockReq, mockRes, () => { nextCalled++; });
+  assert.strictEqual(nextCalled, 2);
+
+  // Req 3 -> Bloqueia (429)
+  limiter(mockReq, mockRes, () => { nextCalled++; });
+  assert.strictEqual(nextCalled, 2); // Não chamou next
+  assert.strictEqual(statusResult, 429);
+  assert.strictEqual(jsonResult.error, 'Limite atingido');
+});
+
+// -------------------------------------------------------------
+// 5. TESTES DE SESSÃO & ASSINATURA HMAC
+// -------------------------------------------------------------
+console.log('\n🔑 5. Testes de Autenticação e HMAC:');
 
 runTest('Assinatura e Verificação de Sessão Legítima', () => {
   const testUser = { id: 'test_sec_user_123', username: 'SecUser', avatar: null };
@@ -106,9 +173,9 @@ runTest('Rejeitar Sessão Adulterada (Cookie Tampering)', () => {
 });
 
 // -------------------------------------------------------------
-// 4. TESTES DE IDOR / ISOLAMENTO MULTI-TENANT
+// 6. TESTES DE IDOR / ISOLAMENTO MULTI-TENANT
 // -------------------------------------------------------------
-console.log('\n🏢 4. Testes de Isolamento Multi-Tenant (Anti-IDOR):');
+console.log('\n🏢 6. Testes de Isolamento Multi-Tenant (Anti-IDOR):');
 
 runTest('Impedir que Servidor B altere ou delete Aviso do Servidor A', () => {
   const guildA = 'guild_alpha_111';
@@ -137,9 +204,9 @@ runTest('Impedir que Servidor B altere ou delete Aviso do Servidor A', () => {
 });
 
 // -------------------------------------------------------------
-// 5. TESTES DE TRANSCRIÇÃO & PATH TRAVERSAL
+// 7. TESTES DE TRANSCRIÇÃO & PATH TRAVERSAL
 // -------------------------------------------------------------
-console.log('\n📄 5. Testes de Segurança de Transcrições:');
+console.log('\n📄 7. Testes de Segurança de Transcrições:');
 
 runTest('Bloquear Path Traversal em IDs de Transcrição', () => {
   const result = getTranscriptFilePath('../../etc/passwd');
@@ -152,9 +219,9 @@ runTest('Bloquear IDs com caracteres maliciosos', () => {
 });
 
 // -------------------------------------------------------------
-// 6. TESTES DE ECONOMIA ATÔMICA
+// 8. TESTES DE ECONOMIA ATÔMICA
 // -------------------------------------------------------------
-console.log('\n💰 6. Testes de Consistência da Economia:');
+console.log('\n💰 8. Testes de Consistência da Economia:');
 
 runTest('Bloquear Débito com Saldo Insuficiente', () => {
   const guildId = 'test_eco_guild';

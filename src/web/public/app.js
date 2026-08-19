@@ -383,8 +383,8 @@ function updateTicketPreview() {
         <div style="display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px;">
           ${currentTicketCategories.map(c => `
             <div style="background: #5865F2; color: #FFFFFF; font-size: 0.85rem; font-weight: 500; padding: 6px 14px; border-radius: 4px; display: inline-flex; align-items: center; gap: 6px; cursor: default;">
-              <span>${c.emoji || ''}</span>
-              <span>${c.label || 'Opção'}</span>
+              <span>${escapeHTML(c.emoji || '')}</span>
+              <span>${escapeHTML(c.label || 'Opção')}</span>
             </div>
           `).join('')}
         </div>

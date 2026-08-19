@@ -509,8 +509,15 @@ function createApiRouter(client) {
     res.json({ success: true, message: 'Configurações gerais e de boas-vindas salvas com sucesso!' });
   });
 
-  // TESTE DE BOAS-VINDAS NO CANAL
-  router.post('/guilds/:guildId/welcome/test-channel', requireAuth, requireGuildAdmin(client), async (req, res) => {
+  // TESTE DE BOAS-VINDAS NO CANAL (COM RATE LIMITING)
+  const { createRateLimiter } = require('../../utils/security.js');
+  const testLimiter = createRateLimiter({
+    windowMs: 60000,
+    max: 5,
+    message: 'Limite de requisições de teste atingido. Por favor, aguarde 1 minuto.'
+  });
+
+  router.post('/guilds/:guildId/welcome/test-channel', requireAuth, requireGuildAdmin(client), testLimiter, async (req, res) => {
     const guildId = req.targetGuildId;
     const botGuild = client.guilds.cache.get(guildId);
     if (!botGuild) return res.status(404).json({ error: 'Servidor não encontrado.' });
@@ -572,7 +579,7 @@ function createApiRouter(client) {
   });
 
   // TESTE DE BOAS-VINDAS NA DM
-  router.post('/guilds/:guildId/welcome/test-dm', requireAuth, requireGuildAdmin(client), async (req, res) => {
+  router.post('/guilds/:guildId/welcome/test-dm', requireAuth, requireGuildAdmin(client), testLimiter, async (req, res) => {
     const guildId = req.targetGuildId;
     const botGuild = client.guilds.cache.get(guildId);
     if (!botGuild) return res.status(404).json({ error: 'Servidor não encontrado.' });
@@ -671,7 +678,7 @@ function createApiRouter(client) {
     res.json({ success: true, message: 'Aviso agendado removido!' });
   });
 
-  router.post('/guilds/:guildId/announcements/:id/test', requireAuth, requireGuildAdmin(client), async (req, res) => {
+  router.post('/guilds/:guildId/announcements/:id/test', requireAuth, requireGuildAdmin(client), testLimiter, async (req, res) => {
     const { id } = req.params;
     const botGuild = req.botGuild;
     const list = DatabaseManager.getAnnouncements(botGuild.id);
@@ -775,7 +782,7 @@ function createApiRouter(client) {
     res.json({ success: true, message: 'Alerta de criador removido com sucesso!' });
   });
 
-  router.post('/guilds/:guildId/creators/:id/test', requireAuth, requireGuildAdmin(client), async (req, res) => {
+  router.post('/guilds/:guildId/creators/:id/test', requireAuth, requireGuildAdmin(client), testLimiter, async (req, res) => {
     const { id } = req.params;
     const guildId = req.targetGuildId;
 

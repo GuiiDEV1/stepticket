@@ -41,8 +41,16 @@ function isPrivateOrLocalIP(ip) {
     if (parts[0] === 100 && parts[1] >= 64 && parts[1] <= 127) return true; // Carrier-grade NAT
   }
 
-  // IPv6 Loopback e Privados (::1, fe80::, fc00::, fd00::)
-  if (ip === '::1' || ip === '::' || ip.startsWith('fe80:') || ip.startsWith('fc') || ip.startsWith('fd')) {
+  // IPv6 Loopback e Privados (::1, fe80::, fc00::, fd00::, ::ffff:*, 64:ff9b::*)
+  if (
+    ip === '::1' ||
+    ip === '::' ||
+    ip.startsWith('fe80:') ||
+    ip.startsWith('fc') ||
+    ip.startsWith('fd') ||
+    ip.startsWith('::ffff:') ||
+    ip.startsWith('64:ff9b::')
+  ) {
     return true;
   }
 
@@ -67,7 +75,7 @@ function isSafePublicUrl(urlString) {
 
     const hostname = parsed.hostname.toLowerCase();
 
-    // 2. Bloqueia localhost e nomes de host locais
+    // 2. Bloqueia localhost e nomes de host locais/cloud metadata
     if (
       hostname === 'localhost' ||
       hostname.endsWith('.localhost') ||
@@ -77,17 +85,24 @@ function isSafePublicUrl(urlString) {
       hostname === '127.0.0.1' ||
       hostname === '::1' ||
       hostname === 'metadata.google.internal' ||
-      hostname === 'instance-data'
+      hostname === 'instance-data' ||
+      hostname === '169.254.169.254'
     ) {
       return false;
     }
 
-    // 3. Se o hostname for um endereço IP direto, valida se não é privado
-    if (net.isIP(hostname)) {
-      if (isPrivateOrLocalIP(hostname)) return false;
+    // 3. Bloqueia notações numéricas inteiras, hexadecimais ou octais (ex: 2130706433 ou 0x7f000001)
+    if (/^(0x[0-9a-f]+|[0-9]+)$/i.test(hostname)) {
+      return false;
     }
 
-    // 4. Bloqueia credenciais embutidas na URL (ex: http://user:pass@host)
+    // 4. Se o hostname for um endereço IP direto (IPv4 ou IPv6 com ou sem colchetes), valida se não é privado
+    const rawHost = hostname.replace(/^\[|\]$/g, '');
+    if (net.isIP(rawHost)) {
+      if (isPrivateOrLocalIP(rawHost)) return false;
+    }
+
+    // 5. Bloqueia credenciais embutidas na URL (ex: http://user:pass@host)
     if (parsed.username || parsed.password) {
       return false;
     }
@@ -96,6 +111,59 @@ function isSafePublicUrl(urlString) {
   } catch (err) {
     return false;
   }
+}
+
+/**
+ * Remove caracteres invisíveis (zero-width) e normaliza texto Unicode contra evasão de filtros
+ * @param {string} str 
+ * @returns {string}
+ */
+function normalizeMessageContent(str) {
+  if (!str || typeof str !== 'string') return '';
+  return str
+    .replace(/[\u200B-\u200D\uFEFF\u00AD\u2060\u180E\u2000-\u200A]/g, '')
+    .normalize('NFKD');
+}
+
+/**
+ * Cria um middleware de Rate Limiting em memória leve e eficiente
+ * @param {object} options 
+ * @param {number} options.windowMs Janela de tempo em milissegundos
+ * @param {number} options.max Quantidade máxima de requisições por janela
+ * @param {string} options.message Mensagem de erro
+ */
+function createRateLimiter({ windowMs = 60000, max = 5, message = 'Muitas solicitações. Aguarde antes de tentar novamente.' } = {}) {
+  const requests = new Map();
+
+  // Limpeza automática da memória a cada 2 minutos
+  setInterval(() => {
+    const now = Date.now();
+    for (const [key, record] of requests.entries()) {
+      if (now > record.resetTime) {
+        requests.delete(key);
+      }
+    }
+  }, 120000);
+
+  return (req, res, next) => {
+    const key = (req.user ? req.user.id : req.ip) + ':' + req.baseUrl + req.path;
+    const now = Date.now();
+
+    const record = requests.get(key);
+    if (!record || now > record.resetTime) {
+      requests.set(key, { count: 1, resetTime: now + windowMs });
+      return next();
+    }
+
+    record.count++;
+    if (record.count > max) {
+      const retryAfterSeconds = Math.ceil((record.resetTime - now) / 1000);
+      res.setHeader('Retry-After', retryAfterSeconds);
+      return res.status(429).json({ error: message, retryAfterSeconds });
+    }
+
+    next();
+  };
 }
 
 /**
@@ -111,5 +179,7 @@ module.exports = {
   escapeHTML,
   isPrivateOrLocalIP,
   isSafePublicUrl,
+  normalizeMessageContent,
+  createRateLimiter,
   generateSecureToken
 };

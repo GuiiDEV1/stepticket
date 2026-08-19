@@ -1,6 +1,7 @@
 const { PermissionFlagsBits } = require('discord.js');
 const DatabaseManager = require('../../database/manager');
 const { createEmbed, warningEmbed, COLORS } = require('../../utils/embedBuilder');
+const { normalizeMessageContent } = require('../../utils/security');
 
 // Cache em memória para detecção de spam/flood (Map: userId -> array de timestamps)
 const userMessageTimestamps = new Map();
@@ -38,7 +39,7 @@ module.exports = {
     // 1. SISTEMA DE AUTOMOD & PROTEÇÃO DE CHAT
     // ==========================================
     if (config.automod_enabled && !isStaff) {
-      const content = message.content;
+      const content = normalizeMessageContent(message.content);
 
       // Anti-Invite do Discord
       if (config.automod_anti_invites) {
