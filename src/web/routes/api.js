@@ -373,7 +373,7 @@ function createApiRouter(client) {
             `⚠️ **Aviso para usuários de FastFlags:**\n` +
             `Seus offsets de memória e FastFlags podem ter sido modificados. Use \`/flag checar\` e \`/flag offsets\` para validar suas configurações!`,
           color: COLORS.SUCCESS,
-          thumbnail: 'https://i.imgur.com/8Q9bZ8R.png',
+          thumbnail: client.user ? client.user.displayAvatarURL({ dynamic: true }) : 'https://images.rbxcdn.com/2b3564e9f3a216e2c023801b1057e389.png',
           fields: [
             { name: '📥 Download Direto da Versão', value: `[Baixar RobloxPlayer.zip](https://setup.rbxcdn.com/${currentUpload}-RobloxPlayer.zip)`, inline: true }
           ],

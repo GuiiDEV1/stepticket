@@ -72,7 +72,7 @@ module.exports = {
           `⚠️ **Aviso para usuários de FastFlags:**\n` +
           `Seus offsets de memória e FastFlags podem ter sido modificados. Use \`/flag checar\` e \`/flag offsets\` para validar suas configurações!`,
         color: COLORS.SUCCESS,
-        thumbnail: 'https://i.imgur.com/8Q9bZ8R.png',
+        thumbnail: client.user ? client.user.displayAvatarURL({ dynamic: true }) : 'https://images.rbxcdn.com/2b3564e9f3a216e2c023801b1057e389.png',
         fields: [
           { name: '📥 Download Direto da Versão', value: `[Baixar RobloxPlayer.zip](https://setup.rbxcdn.com/${currentUpload}-RobloxPlayer.zip)`, inline: true },
           { name: '⚡ Studio Deploy', value: `\`${versions?.studio?.clientVersionUpload || 'version-studio-exemplo'}\``, inline: true }
@@ -109,7 +109,7 @@ module.exports = {
         title: '📊 Status do Rastreador Roblox (Live Tracker)',
         description: 'O bot verifica as APIs da Roblox a cada **2 minutos** em segundo plano e posta no canal configurado sempre que sair uma atualização.',
         color: COLORS.INFO,
-        thumbnail: 'https://i.imgur.com/8Q9bZ8R.png',
+        thumbnail: client.user ? client.user.displayAvatarURL({ dynamic: true }) : 'https://images.rbxcdn.com/2b3564e9f3a216e2c023801b1057e389.png',
         fields: [
           { name: '🟢 Status do Rastreador', value: '`Ativo & Monitorando (24/7)`', inline: true },
           { name: '⏱️ Última Checagem', value: lastCheck, inline: true },
@@ -140,7 +140,7 @@ module.exports = {
       title: '🌐 Versões Ativas da Roblox (Canal LIVE)',
       description: 'Informações de deploy oficiais sincronizadas diretamente dos servidores da Roblox.',
       color: COLORS.PRIMARY,
-      thumbnail: 'https://i.imgur.com/8Q9bZ8R.png',
+      thumbnail: client.user ? client.user.displayAvatarURL({ dynamic: true }) : 'https://images.rbxcdn.com/2b3564e9f3a216e2c023801b1057e389.png',
       fields: [
         {
           name: '🎮 Roblox Player (Cliente de Jogo)',

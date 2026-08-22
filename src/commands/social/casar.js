@@ -67,7 +67,7 @@ module.exports = {
         `*"Promete estar junto na vitória e na derrota, nas FastFlags e no Roblox, até que o ban nos separe?"*\n\n` +
         `Clique em um dos botões abaixo para responder:`,
       color: 0xFF69B4, // Hot Pink
-      thumbnail: 'https://i.imgur.com/8Q9bZ8R.png',
+      thumbnail: target.displayAvatarURL({ dynamic: true }),
       footerText: 'O pedido expira em 60 segundos'
     });
 
